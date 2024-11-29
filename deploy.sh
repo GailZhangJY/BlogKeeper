@@ -27,7 +27,7 @@ fi
 # 拉取最新代码
 echo -e "${GREEN}拉取最新代码...${NC}"
 if [ ! -d "BlogKeeper" ]; then
-    git clone https://github.com/your-username/BlogKeeper.git
+    git clone https://github.com/GailZhangJY/BlogKeeper.git
 else
     cd BlogKeeper
     git pull
