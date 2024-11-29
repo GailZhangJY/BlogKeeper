@@ -1,0 +1,25 @@
+version: '3'
+services:
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    ports:
+      - "3101:80"  # 修改为3101端口
+    depends_on:
+      - api
+    networks:
+      - blogkeeper-network
+
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    ports:
+      - "3102:8000"  # 修改为3102端口
+    networks:
+      - blogkeeper-network
+
+networks:
+  blogkeeper-network:
+    driver: bridge

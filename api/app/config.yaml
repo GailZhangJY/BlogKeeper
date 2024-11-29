@@ -1,0 +1,56 @@
+# 平台通用配置
+common:
+  timeout: 30
+  retry_times: 3
+  retry_delay: 1
+  user_agents:
+    - "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36"
+    - "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1"
+
+# 知乎配置
+zhihu:
+  cookies:
+    # 主要认证 cookie
+    z_c0: "2|1:0|10:1731059489|4:z_c0|80:MS4xdEo3UUFRQUFBQUFtQUFBQVlBSlZUU0F0RzJoc3FGTDVNOVFJejFhdF9HZHBwRFhJZWpVNEJRPT0=|013e3a10f185a7c18e20f4cdafed14744354973438fd5f563bcfc014efd1e4fc"
+    _zap: "7a4929b1-ebe0-4eb8-bd81-72a9c8a700cc"
+    _xsrf: "nORgb4gmk4Jr4EBcYBLB6cmnV0s29T6Y"
+    # 其他重要 cookie
+    d_c0: "ASCSEIzeghmPTp-EKE4erGT7uiWdiyBXUNI=|1731059221"
+    SESSIONID: "GvPQn2PxqUj2STeIhOArW2FvDspMOKqRV85AeX4Idwf"
+    # 追踪相关 cookie
+    Hm_lvt_98beee57fd2ef70ccdd5ca52b9740c49: "1730368917,1730451134,1731059522,1732614902"
+    Hm_lpvt_98beee57fd2ef70ccdd5ca52b9740c49: "1732616953"
+  headers:
+    x-api-version: "3.0.91"
+    x-app-za: "OS=Web"
+  endpoints:
+    web_api: "https://www.zhihu.com/api/v4/articles/{article_id}"
+    mobile_api: "https://api.zhihu.com/articles/{article_id}"
+    mobile_web: "https://m.zhihu.com/p/{article_id}"
+
+# CSDN配置
+csdn:
+  cookies:
+    UserName: ""
+    UserToken: ""
+  headers:
+    origin: "https://blog.csdn.net"
+    referer: "https://blog.csdn.net"
+
+# 简书配置
+jianshu:
+  cookies:
+    remember_user_token: ""
+    sign_in_redirect: ""
+  headers:
+    origin: "https://www.jianshu.com"
+    referer: "https://www.jianshu.com"
+
+# 博客园配置
+cnblogs:
+  cookies:
+    .CNBlogsCookie: ""
+    .Cnblogs.AspNetCore.Cookies: ""
+  headers:
+    origin: "https://www.cnblogs.com"
+    referer: "https://www.cnblogs.com"

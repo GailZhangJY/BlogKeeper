@@ -1,0 +1,109 @@
+/* 掘金特定样式 */
+/* 内容居中显示 */
+.content-container {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+article {
+    padding: 40px;
+    margin: 0 auto;
+    max-width: 800px;
+}
+
+/* 代码块样式 */
+pre {
+    background-color: #f8f8f8;
+    padding: 1em;
+    border-radius: 4px;
+    overflow-x: auto;
+    margin: 1.5em 0;
+    border: 1px solid #eaecef;
+    font-family: Consolas, Monaco, 'Courier New', monospace;
+}
+
+code {
+    font-family: Consolas, Monaco, 'Courier New', monospace;
+    font-size: 0.9em;
+    background-color: #f8f8f8;
+    padding: 0.2em 0.4em;
+    border-radius: 3px;
+}
+
+pre code {
+    display: block;
+    padding: 0;
+    border: none;
+    background: none;
+    line-height: 1.45;
+    color: #24292e;
+}
+
+.hljs {
+    background: #f8f8f8;
+    color: #333;
+}
+
+/* 标题样式 */
+h1 {
+    font-size: 2em;
+    text-align: center;
+    margin: 1.2em 0;
+    color: #1d2129;
+}
+
+h2 {
+    font-size: 1.5em;
+    border-bottom: 1px solid #eaecef;
+    padding-bottom: 0.3em;
+    margin-top: 2em;
+    margin-bottom: 1em;
+    color: #1d2129;
+}
+
+h3 {
+    font-size: 1.25em;
+    margin-top: 1.5em;
+    margin-bottom: 0.8em;
+    color: #1d2129;
+}
+
+/* 列表样式 */
+ul, ol {
+    padding-left: 1.2em;
+    margin: 1em 0;
+}
+
+li {
+    margin: 0.5em 0;
+    line-height: 1.5;
+}
+
+/* 段落样式 */
+p {
+    margin: 1em 0;
+    line-height: 1.75;
+    color: #333;
+}
+
+/* 图片样式 */
+img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 1.5em auto;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* 链接样式 */
+a {
+    color: #1e80ff;
+    text-decoration: none;
+}
+
+a:hover {
+    color: #1b72e8;
+    text-decoration: underline;
+}

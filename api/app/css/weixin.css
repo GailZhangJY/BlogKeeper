@@ -1,0 +1,164 @@
+/* 微信公众号文章样式 */
+
+/* 基本文章样式 */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.6;
+    color: #333;
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: #fff;
+}
+
+/* 标题样式 */
+h1 {
+    font-size: 24px;
+    font-weight: bold;
+    margin: 20px 0;
+    text-align: center;
+    color: #333;
+}
+
+h2 {
+    font-size: 20px;
+    margin: 16px 0;
+    color: #333;
+}
+
+h3 {
+    font-size: 18px;
+    margin: 14px 0;
+    color: #333;
+}
+
+/* 段落样式 */
+p {
+    margin: 16px 0;
+    color: #333;
+}
+
+/* 图片样式 */
+img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 20px auto;
+    border-radius: 4px;
+}
+
+/* 链接样式 */
+a {
+    color: #07C160;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+/* 代码块样式 */
+pre {
+    background-color: #f8f8f8;
+    padding: 16px;
+    border-radius: 4px;
+    overflow-x: auto;
+    margin: 16px 0;
+    font-family: Consolas, Monaco, 'Andale Mono', monospace;
+}
+
+code {
+    font-family: Consolas, Monaco, 'Andale Mono', monospace;
+    background-color: #f8f8f8;
+    padding: 2px 4px;
+    border-radius: 3px;
+}
+
+/* 引用样式 */
+blockquote {
+    margin: 16px 0;
+    padding: 0 16px;
+    color: #666;
+    border-left: 4px solid #07C160;
+    background-color: #f8f8f8;
+}
+
+/* 列表样式 */
+ul, ol {
+    margin: 16px 0;
+    padding-left: 24px;
+}
+
+li {
+    margin: 8px 0;
+}
+
+/* 表格样式 */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+}
+
+th, td {
+    padding: 8px;
+    border: 1px solid #ddd;
+}
+
+th {
+    background-color: #f8f8f8;
+    font-weight: bold;
+}
+
+/* 分割线样式 */
+hr {
+    border: none;
+    border-top: 1px solid #ddd;
+    margin: 24px 0;
+}
+
+/* 微信特有元素样式 */
+.rich_media_content {
+    overflow: hidden;
+    color: #333;
+}
+
+.code-snippet {
+    display: block;
+    background-color: #f8f8f8;
+    padding: 16px;
+    border-radius: 4px;
+    margin: 16px 0;
+    overflow-x: auto;
+}
+
+/* 响应式设计 */
+@media screen and (max-width: 768px) {
+    body {
+        padding: 15px;
+    }
+    
+    h1 {
+        font-size: 22px;
+    }
+    
+    h2 {
+        font-size: 18px;
+    }
+    
+    h3 {
+        font-size: 16px;
+    }
+}
+
+/* 打印样式 */
+@media print {
+    body {
+        max-width: none;
+        padding: 0;
+    }
+    
+    a {
+        text-decoration: underline;
+    }
+}
