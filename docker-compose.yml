@@ -1,24 +1,39 @@
-version: '3'
+version: '3.8'
+
 services:
   web:
     build:
       context: ./web
       dockerfile: Dockerfile
     ports:
-      - "3101:80"  # 修改为3101端口
+      - "${WEB_PORT}:80"
     depends_on:
       - api
     networks:
       - blogkeeper-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   api:
     build:
       context: ./api
       dockerfile: Dockerfile
+    environment:
+      - DOCKER_DEFAULT_PLATFORM=linux/amd64
     ports:
-      - "3102:8000"  # 修改为3102端口
+      - "${API_PORT}:8000"
     networks:
       - blogkeeper-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
 networks:
   blogkeeper-network:

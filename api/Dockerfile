@@ -1,4 +1,7 @@
-FROM python:3.9-slim
+FROM registry.cn-hangzhou.aliyuncs.com/library/python:3.9-slim
+# 设置pip源为阿里云
+RUN pip config set global.index-url https://mirrors.aliyun.com/pypi/simple/ \
+    && pip config set install.trusted-host mirrors.aliyun.com
 WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
