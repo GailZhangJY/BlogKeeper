@@ -27,16 +27,16 @@ API_HOST = os.getenv('API_HOST', '0.0.0.0')
 API_PORT = int(os.getenv('API_PORT', '3102'))
 CORS_ORIGINS = os.getenv('CORS_ORIGINS', '*').split(',')
 
-
+# 创建FastAPI应用
 app = FastAPI(title="BlogKeeper API")
 
 # 配置CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=CORS_ORIGINS,  # 从环境变量读取允许的源
+    allow_origins=["*"],  # 允许所有源，生产环境建议设置具体的源
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["*"],  # 允许所有HTTP方法
+    allow_headers=["*"],  # 允许所有请求头
 )
 
 # 创建临时文件目录
