@@ -297,43 +297,130 @@ start_services() {
     return 0
 }
 
+# 修复yum的Python版本
+fix_yum() {
+    log_info "修复yum配置..."
+    
+    # 备份原始yum文件
+    if [ ! -f /usr/bin/yum.backup ]; then
+        sudo cp /usr/bin/yum /usr/bin/yum.backup
+    fi
+    
+    # 修改yum脚本，强制使用python2
+    sudo sed -i '1c #!/usr/bin/python2' /usr/bin/yum
+    sudo sed -i '1c #!/usr/bin/python2' /usr/libexec/urlgrabber-ext-down
+    
+    log_info "yum配置修复完成"
+}
+
+# 检查并安装Python 3.9
+install_python() {
+    log_info "检查Python版本..."
+    
+    # 检查是否已安装Python 3.9
+    if ! command -v python3.9 &> /dev/null; then
+        log_warn "未检测到Python 3.9，开始安装..."
+        
+        # 确保yum使用python2
+        fix_yum
+        
+        log_info "安装编译依赖..."
+        sudo yum groupinstall -y "Development Tools"
+        sudo yum install -y openssl-devel bzip2-devel libffi-devel xz-devel
+
+        cd /tmp
+        wget https://www.python.org/ftp/python/3.9.18/Python-3.9.18.tgz
+        tar xzf Python-3.9.18.tgz
+        cd Python-3.9.18
+        ./configure --enable-optimizations
+        sudo make altinstall
+        
+        cd /tmp
+        rm -rf Python-3.9.18 Python-3.9.18.tgz
+    fi
+    
+    # 设置Python版本的软链接
+    log_info "配置Python版本..."
+    
+    # 备份原有的Python软链接
+    if [ -L /usr/bin/python ]; then
+        sudo mv /usr/bin/python /usr/bin/python.backup
+    fi
+    if [ -L /usr/bin/python3 ]; then
+        sudo mv /usr/bin/python3 /usr/bin/python3.backup
+    fi
+    
+    # 设置Python 2.7
+    sudo ln -sf /usr/bin/python2.7 /usr/bin/python2
+    
+    # 设置Python 3.9为默认Python
+    sudo ln -sf /usr/local/bin/python3.9 /usr/bin/python3
+    sudo ln -sf /usr/local/bin/python3.9 /usr/bin/python
+    sudo ln -sf /usr/local/bin/pip3.9 /usr/bin/pip3
+    sudo ln -sf /usr/local/bin/pip3.9 /usr/bin/pip
+    
+    # 验证Python版本
+    log_info "验证Python版本..."
+    python -V | grep -q "Python 3.9" || {
+        log_error "Python 3.9设置为默认版本失败"
+        exit 1
+    }
+    
+    log_info "升级pip..."
+    python -m pip install --upgrade pip
+    
+    log_info "Python 3.9环境安装完成，已设置为默认Python版本"
+    log_info "可以使用以下命令访问不同版本："
+    log_info "- python 或 python3 -> Python 3.9"
+    log_info "- python2 -> Python 2.7"
+}
+
 # 主函数
 main() {
     log_info "开始部署 BlogKeeper..."
     
-    # 首先停止服务并确保端口释放
-    if ! stop_services; then
-        log_error "无法释放必要端口，部署终止"
+    # 检查是否为root用户
+    if [ "$EUID" -ne 0 ]; then
+        log_error "请使用root用户运行此脚本"
         exit 1
     fi
     
-    # 安装必要工具
-    install_tools || exit 1
-    install_docker || exit 1
-    install_docker_compose || exit 1
-    configure_docker || exit 1
+    # 首先修复yum
+    fix_yum
     
-    # 检查必要端口
+    # 安装必要工具
+    install_tools
+    
+    # 检查并安装Python
+    install_python
+    
+    # 检查并安装Docker
+    install_docker
+    
+    # 检查并安装Docker Compose
+    install_docker_compose
+    
+    # 配置Docker
+    configure_docker
+    
+    # 检查端口占用
     check_port 3101 || exit 1
     check_port 3102 || exit 1
     
+    # 停止已运行的服务
+    stop_services
+    
     # 开放防火墙端口
-    open_ports || exit 1
+    open_ports
     
     # 设置环境变量
-    setup_environment || exit 1
+    setup_environment
     
-    # 拉取最新代码
-    if ! pull_code; then
-        log_error "代码拉取失败"
-        exit 1
-    fi
+    # 拉取代码
+    pull_code
     
     # 启动服务
-    if ! start_services; then
-        log_error "服务启动失败"
-        exit 1
-    fi
+    start_services
     
     log_info "部署完成！"
     log_info "前端访问地址: http://localhost:3101"
