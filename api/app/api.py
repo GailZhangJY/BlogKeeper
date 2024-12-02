@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel, HttpUrl, validator
 from typing import List
