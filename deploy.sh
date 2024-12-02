@@ -105,17 +105,93 @@ install_tools() {
     return 0
 }
 
+# 强制释放端口
+force_free_port() {
+    local port=$1
+    local max_attempts=3
+    local attempt=1
+    
+    while [ $attempt -le $max_attempts ]; do
+        log_info "尝试释放端口 ${port} (第 ${attempt} 次尝试)..."
+        
+        # 查找并终止占用端口的进程
+        pid=$(lsof -t -i:${port})
+        if [ ! -z "$pid" ]; then
+            log_warn "端口 ${port} 被进程 ${pid} 占用，正在结束进程..."
+            kill -9 $pid
+            sleep 2
+        fi
+        
+        # 检查端口是否已释放
+        if ! netstat -tuln | grep ":${port}" > /dev/null; then
+            log_info "端口 ${port} 已释放"
+            return 0
+        fi
+        
+        attempt=$((attempt + 1))
+        sleep 1
+    done
+    
+    log_error "无法释放端口 ${port} (已尝试 ${max_attempts} 次)"
+    return 1
+}
+
 # 检查端口占用
 check_port() {
     local port=$1
     log_info "检查端口 ${port} 是否可用..."
     
-    if netstat -tuln | grep ":${port}" >/dev/null 2>&1; then
+    if netstat -tuln | grep ":${port}" > /dev/null; then
         log_error "端口 ${port} 已被占用"
-        return 1
+        # 尝试强制释放端口
+        if ! force_free_port $port; then
+            return 1
+        fi
     fi
     
     log_info "端口 ${port} 可用"
+    return 0
+}
+
+# 停止已运行的服务
+stop_services() {
+    log_info "正在停止已运行的服务..."
+    
+    # 停止后端服务
+    if pgrep -f "python.*api.py" > /dev/null; then
+        log_info "停止后端 Python 服务..."
+        pkill -9 -f "python.*api.py"
+        sleep 2
+    fi
+    
+    # 停止前端服务
+    if pgrep -f "node.*vite" > /dev/null; then
+        log_info "停止前端 Vite 服务..."
+        pkill -9 -f "node.*vite"
+        sleep 2
+    fi
+
+    # 停止所有可能的Node进程（包括npm和yarn）
+    if pgrep -f "node" > /dev/null; then
+        log_info "停止所有Node相关进程..."
+        pkill -9 -f "node"
+        sleep 2
+    fi
+    
+    # 强制释放必要端口
+    local ports_freed=true
+    for port in 3101 3102; do
+        if ! force_free_port $port; then
+            ports_freed=false
+        fi
+    done
+    
+    if [ "$ports_freed" = false ]; then
+        log_error "部分端口无法释放"
+        return 1
+    fi
+    
+    log_info "所有服务已停止，端口已释放"
     return 0
 }
 
@@ -224,6 +300,12 @@ start_services() {
 # 主函数
 main() {
     log_info "开始部署 BlogKeeper..."
+    
+    # 首先停止服务并确保端口释放
+    if ! stop_services; then
+        log_error "无法释放必要端口，部署终止"
+        exit 1
+    fi
     
     # 安装必要工具
     install_tools || exit 1
