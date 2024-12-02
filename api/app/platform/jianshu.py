@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 from core.base_parser import BaseBlogParser
 from bs4 import BeautifulSoup
 import re

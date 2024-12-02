@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import argparse
 from typing import List, Dict, Optional
 from colorama import init, Fore, Style
