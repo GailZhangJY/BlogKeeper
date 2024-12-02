@@ -120,6 +120,13 @@
 <script lang="ts" setup>
 import { ref, computed } from 'vue'
 import { getFileNameFromResponse } from '@/utils/fileUtils';
+import { API_CONFIG } from '@/config'
+
+const apiHost = ref(API_CONFIG.HOST)
+const blogUrl = ref('')
+const isLoading = ref(false)
+const selectedFormats = ref<string[]>(['html'])
+const results = ref<ParseResult[]>([])
 
 interface Format {
   label: string
@@ -137,11 +144,6 @@ interface ParseResult {
   size: number
   format: string
 }
-
-const blogUrl = ref('')
-const isLoading = ref(false)
-const selectedFormats = ref<string[]>(['html'])
-const results = ref<ParseResult[]>([])
 
 const formats: Format[] = [
   { label: 'HTML', value: 'html' },
@@ -172,7 +174,7 @@ const parseContent = async () => {
   
   isLoading.value = true
   try {
-    const response = await fetch('http://127.0.0.1:8000/parse', {
+    const response = await fetch(`${apiHost.value}/parse`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -208,7 +210,7 @@ const formatFileSize = (bytes: number): string => {
 const downloadFile = async (result: ParseResult) => {
   try {
     console.log('开始下载文件:', result)
-    const downloadUrl = `http://127.0.0.1:8000${result.download_url}`
+    const downloadUrl = `${apiHost.value}${result.download_url}`
     console.log('下载地址:', downloadUrl)
     
     const response = await fetch(downloadUrl)
@@ -251,7 +253,7 @@ const downloadFile = async (result: ParseResult) => {
 const downloadAll = async () => {
   try {
     console.log('开始批量下载文件:', results.value)
-    const downloadUrl = `http://127.0.0.1:8000/batch-download`
+    const downloadUrl = `${apiHost.value}/batch-download`
     console.log('批量下载地址:', downloadUrl)
     
     // 构建下载请求

@@ -6,6 +6,7 @@ import uvicorn
 from fastapi.middleware.cors import CORSMiddleware
 import tempfile
 import os
+from dotenv import load_dotenv
 import zipfile
 import io
 from core.blog_parser import BlogParser
@@ -15,12 +16,21 @@ from core.log_utils import logger
 from datetime import datetime
 from urllib.parse import quote
 
+# 加载环境变量
+load_dotenv()
+
+# 获取配置
+API_HOST = os.getenv('API_HOST', '0.0.0.0')
+API_PORT = int(os.getenv('API_PORT', '3102'))
+CORS_ORIGINS = os.getenv('CORS_ORIGINS', '*').split(',')
+
+
 app = FastAPI(title="BlogKeeper API")
 
 # 配置CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 在生产环境中应该设置具体的源
+    allow_origins=CORS_ORIGINS,  # 从环境变量读取允许的源
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -180,10 +190,15 @@ async def parse_blog_api(request: ParseRequest):
 
 # 启动服务器
 if __name__ == "__main__":
-    import sys
-    if sys.version_info >= (3, 12):
-        # Python 3.12+ 使用简单模式启动
-        uvicorn.run(app, host="0.0.0.0", port=8000)
-    else:
-        # 其他版本使用 reload 模式
-        uvicorn.run("api:app", host="0.0.0.0", port=8000, reload=True)
+    logger.info(f"正在启动服务器，HOST={API_HOST}, PORT={API_PORT}")
+    try:
+        import uvicorn
+        uvicorn.run(
+            app,
+            host=API_HOST,
+            port=API_PORT,
+            reload=False  # 关闭reload模式，避免platform相关问题
+        )
+    except Exception as e:
+        logger.error(f"启动服务器失败: {str(e)}")
+        raise

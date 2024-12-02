@@ -57,50 +57,106 @@ install_docker_compose() {
 # 配置 Docker
 configure_docker() {
     log_info "配置 Docker..."
-    if [ ! -d "/etc/docker" ]; then
-        sudo mkdir -p /etc/docker
+    
+    # 创建 Docker 配置目录
+    sudo mkdir -p /etc/docker
+    
+    # 配置镜像加速器
+    cat << EOF | sudo tee /etc/docker/daemon.json
+{
+    "registry-mirrors": [
+        "https://mirror.ccs.tencentyun.com",
+        "https://docker.mirrors.ustc.edu.cn",
+        "https://registry.docker-cn.com",
+        "https://hub-mirror.c.163.com"
+    ]
+}
+EOF
+    
+    # 重启 Docker 服务
+    sudo systemctl daemon-reload
+    sudo systemctl restart docker
+    
+    log_info "Docker 配置完成"
+    return 0
+}
+
+# 安装必要工具
+install_tools() {
+    log_info "安装必要工具..."
+    
+    # 检测包管理器
+    if command -v yum >/dev/null 2>&1; then
+        # CentOS/RHEL
+        sudo yum install -y lsof firewalld
+        sudo systemctl start firewalld
+        sudo systemctl enable firewalld
+    elif command -v apt-get >/dev/null 2>&1; then
+        # Debian/Ubuntu
+        sudo apt-get update
+        sudo apt-get install -y lsof ufw
+        sudo ufw enable
+    else
+        log_error "不支持的操作系统"
+        return 1
     fi
     
-    # 配置 Docker 镜像加速
-    if [ ! -f "/etc/docker/daemon.json" ]; then
-        echo '{
-            "registry-mirrors": [
-                "https://registry.cn-hangzhou.aliyuncs.com",
-                "https://mirror.ccs.tencentyun.com",
-                "https://docker.mirrors.ustc.edu.cn"
-            ],
-            "insecure-registries": [],
-            "debug": true,
-            "experimental": true
-        }' | sudo tee /etc/docker/daemon.json
-        
-        # 重启 Docker 服务
-        sudo systemctl daemon-reload
-        sudo systemctl restart docker
-    fi
+    log_info "工具安装完成"
+    return 0
 }
 
 # 检查端口占用
 check_port() {
-    if lsof -Pi :$1 -sTCP:LISTEN -t >/dev/null ; then
-        log_error "端口 $1 已被占用"
+    local port=$1
+    log_info "检查端口 ${port} 是否可用..."
+    
+    if netstat -tuln | grep ":${port}" >/dev/null 2>&1; then
+        log_error "端口 ${port} 已被占用"
         return 1
     fi
+    
+    log_info "端口 ${port} 可用"
     return 0
 }
 
-# 检查环境变量文件
-check_env_file() {
-    if [ ! -f .env ]; then
-        if [ -f .env.example ]; then
-            log_warn "未找到 .env 文件，将使用 .env.example 创建"
-            cp .env.example .env
-            log_info "请修改 .env 文件中的配置"
-        else
-            log_error "未找到 .env 和 .env.example 文件"
-            return 1
-        fi
+# 开放防火墙端口
+open_ports() {
+    log_info "开放防火墙端口..."
+    
+    # 直接使用 iptables
+    sudo iptables -A INPUT -p tcp --dport 3101 -j ACCEPT
+    sudo iptables -A INPUT -p tcp --dport 3102 -j ACCEPT
+    
+    # 保存规则
+    if [ -d "/etc/sysconfig" ]; then
+        # CentOS
+        sudo service iptables save
+    else
+        # Ubuntu/Debian
+        sudo iptables-save | sudo tee /etc/iptables/rules.v4 > /dev/null
     fi
+    
+    log_info "端口开放完成"
+    return 0
+}
+
+# 设置环境变量
+setup_environment() {
+    log_info "设置环境变量..."
+    
+    # 创建环境变量文件
+    cat > .env << EOF
+# API配置
+API_PORT=3102
+API_HOST=0.0.0.0
+DEBUG=False
+
+# Web配置
+WEB_PORT=3101
+API_URL=http://localhost:3102
+EOF
+
+    log_info "环境变量设置完成"
 }
 
 # 拉取代码
@@ -132,60 +188,37 @@ pull_code() {
 # 启动服务
 start_services() {
     log_info "启动服务..."
-    # 强制重新构建镜像
+    
+    # 检查前端构建目录
+    if [ ! -d "web/dist" ]; then
+        log_error "前端构建目录不存在: web/dist"
+        return 1
+    fi
+    
+    # 停止现有服务
     docker-compose down
-    docker-compose build --no-cache
-    docker-compose up -d
     
-    log_info "等待服务启动..."
-    sleep 10
-    
-    # 检查服务健康状态
-    if docker-compose ps | grep -q "Exit"; then
-        log_error "部分服务启动失败，请检查日志"
-        docker-compose logs
+    # 启动服务
+    if [ -f "docker-compose.yml" ]; then
+        docker-compose up -d --build
+        
+        # 等待服务启动
+        log_info "等待服务启动..."
+        sleep 10
+        
+        # 检查服务状态
+        if ! docker-compose ps | grep "Up" > /dev/null; then
+            log_error "服务启动失败，请检查docker-compose日志"
+            docker-compose logs
+            return 1
+        fi
+    else
+        log_error "docker-compose.yml 不存在"
         return 1
     fi
     
-    log_info "所有服务已成功启动"
-}
-
-# 安装 Python 3.9
-install_python39() {
-    if command -v python3.9 &> /dev/null; then
-        log_info "Python 3.9 已安装"
-        return 0
-    fi
-
-    log_info "安装 Python 3.9..."
-    
-    # 安装依赖
-    sudo yum update -y
-    sudo yum install wget -y
-    sudo yum groupinstall "Development Tools" -y
-    sudo yum install openssl-devel bzip2-devel libffi-devel xz-devel -y
-
-    # 下载并编译 Python 3.9
-    cd /opt
-    sudo wget https://www.python.org/ftp/python/3.9.16/Python-3.9.16.tgz
-    sudo tar xzf Python-3.9.16.tgz
-    cd Python-3.9.16
-    sudo ./configure --enable-optimizations
-    sudo make altinstall
-
-    # 创建软链接
-    sudo ln -sf /usr/local/bin/python3.9 /usr/local/bin/python3
-    sudo ln -sf /usr/local/bin/pip3.9 /usr/local/bin/pip3
-
-    # 验证安装
-    if ! command -v python3.9 &> /dev/null; then
-        log_error "Python 3.9 安装失败"
-        return 1
-    fi
-
-    log_info "Python 3.9 安装成功"
-    python3.9 --version
-    pip3.9 --version
+    log_info "服务启动完成"
+    return 0
 }
 
 # 主函数
@@ -193,27 +226,36 @@ main() {
     log_info "开始部署 BlogKeeper..."
     
     # 安装必要工具
-    install_docker
-    install_docker_compose
-    configure_docker
-    install_python39
+    install_tools || exit 1
+    install_docker || exit 1
+    install_docker_compose || exit 1
+    configure_docker || exit 1
     
     # 检查必要端口
     check_port 3101 || exit 1
     check_port 3102 || exit 1
     
-    # 检查环境变量
-    # check_env_file || exit 1
+    # 开放防火墙端口
+    open_ports || exit 1
     
-    # 拉取代码
-    pull_code
+    # 设置环境变量
+    setup_environment || exit 1
+    
+    # 拉取最新代码
+    if ! pull_code; then
+        log_error "代码拉取失败"
+        exit 1
+    fi
     
     # 启动服务
-    start_services
+    if ! start_services; then
+        log_error "服务启动失败"
+        exit 1
+    fi
     
     log_info "部署完成！"
     log_info "前端访问地址: http://localhost:3101"
-    log_info "后端访问地址: http://localhost:3102"
+    log_info "后端API地址: http://localhost:3102"
 }
 
 # 执行主函数

@@ -7,7 +7,10 @@ pygments
 markdownify
 pyppeteer
 aiohttp
-fastapi>=0.68.0
+fastapi==0.103.2
 uvicorn==0.23.2
 python-multipart
 pydantic>=1.8.0
+html2text
+python-dotenv
+aiofiles
