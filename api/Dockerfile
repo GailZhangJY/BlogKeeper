@@ -6,4 +6,5 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "3102"]
+# 修改启动命令，指定正确的 app 路径
+CMD ["uvicorn", "app.api:app", "--host", "0.0.0.0", "--port", "3102"]
