@@ -4,13 +4,13 @@
 from bs4 import BeautifulSoup
 import os
 from urllib.parse import urlparse
-from platform.cnblog import CNBlogParser
-from platform.csdn import CSDNParser
-from platform.zhihu import ZhihuParser
-from platform.juejin import JuejinParser
-from platform.jianshu import JianshuParser
-from platform.wechat import WeChatParser
-from platform.yuque import YuqueParser
+from platform_api.cnblog import CNBlogParser
+from platform_api.csdn import CSDNParser
+from platform_api.zhihu import ZhihuParser
+from platform_api.juejin import JuejinParser
+from platform_api.jianshu import JianshuParser
+from platform_api.wechat import WeChatParser
+from platform_api.yuque import YuqueParser
 from .log_utils import logger
 
 class BlogParser:
