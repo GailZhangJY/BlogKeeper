@@ -217,21 +217,22 @@ open_ports() {
 }
 
 # 设置环境变量
-setup_environment() {
+setup_env() {
     log_info "设置环境变量..."
     
-    # 创建环境变量文件
-    cat > .env << EOF
-# API配置
-API_PORT=3102
-API_HOST=0.0.0.0
-DEBUG=False
-
-# Web配置
-WEB_PORT=3101
-API_URL=http://localhost:3102
+    # 设置API和Web端口
+    export API_PORT=3102
+    export WEB_PORT=3101
+    
+    # 将环境变量写入配置文件，以便持久化
+    cat > /etc/profile.d/blogkeeper.sh << EOF
+export API_PORT=3102
+export WEB_PORT=3101
 EOF
-
+    
+    # 立即生效
+    source /etc/profile.d/blogkeeper.sh
+    
     log_info "环境变量设置完成"
 }
 
@@ -326,13 +327,14 @@ install_python() {
         
         log_info "安装编译依赖..."
         sudo yum groupinstall -y "Development Tools"
-        sudo yum install -y openssl-devel bzip2-devel libffi-devel xz-devel
+        sudo yum install -y openssl-devel bzip2-devel libffi-devel xz-devel zlib-devel sqlite-devel readline-devel tk-devel gdbm-devel db4-devel libpcap-devel python39-devel
 
         cd /tmp
         wget https://www.python.org/ftp/python/3.9.18/Python-3.9.18.tgz
         tar xzf Python-3.9.18.tgz
         cd Python-3.9.18
-        ./configure --enable-optimizations
+        ./configure --enable-optimizations --with-ensurepip=install --enable-shared LDFLAGS="-Wl,-rpath /usr/local/lib"
+        make -j $(nproc)
         sudo make altinstall
         
         cd /tmp
@@ -366,8 +368,19 @@ install_python() {
         exit 1
     }
     
-    log_info "升级pip..."
+    log_info "升级pip并安装依赖..."
     python -m pip install --upgrade pip
+    cd /root/BlogKeeper/api
+    
+    # 清理并重新安装依赖
+    pip uninstall -y -r requirements.txt || true
+    pip install --no-cache-dir -r requirements.txt
+    
+    # 验证platform模块
+    python -c "import platform; print(platform.system())" || {
+        log_error "Python platform模块验证失败"
+        exit 1
+    }
     
     log_info "Python 3.9环境安装完成，已设置为默认Python版本"
     log_info "可以使用以下命令访问不同版本："
@@ -414,7 +427,7 @@ main() {
     open_ports
     
     # 设置环境变量
-    setup_environment
+    setup_env
     
     # 拉取代码
     pull_code
@@ -423,8 +436,8 @@ main() {
     start_services
     
     log_info "部署完成！"
-    log_info "前端访问地址: http://localhost:3101"
-    log_info "后端API地址: http://localhost:3102"
+    log_info "前端访问地址: http://localhost:${WEB_PORT}"
+    log_info "后端API地址: http://localhost:${API_PORT}"
 }
 
 # 执行主函数
