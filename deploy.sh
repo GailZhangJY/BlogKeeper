@@ -31,16 +31,232 @@ check_command() {
     return 0
 }
 
-# 检查并安装 Docker
+# 修复网络配置
+fix_network() {
+    log_info "修复网络配置..."
+    
+    # 安装 iptables 服务
+    sudo yum install -y iptables-services
+    
+    # 停止并禁用 firewalld
+    sudo systemctl stop firewalld || true
+    sudo systemctl disable firewalld || true
+    
+    # 启用并启动 iptables
+    sudo systemctl enable iptables
+    sudo systemctl start iptables
+    
+    # 清理现有规则
+    sudo iptables -F
+    sudo iptables -X
+    sudo iptables -t nat -F
+    sudo iptables -t nat -X
+    sudo iptables -t mangle -F
+    sudo iptables -t mangle -X
+    sudo iptables -P INPUT ACCEPT
+    sudo iptables -P FORWARD ACCEPT
+    sudo iptables -P OUTPUT ACCEPT
+    
+    # 保存 iptables 规则
+    sudo service iptables save
+    
+    # 确保网络模块加载
+    sudo modprobe br_netfilter
+    sudo modprobe overlay
+    
+    # 配置内核参数
+    cat << EOF | sudo tee /etc/sysctl.d/99-docker.conf
+net.bridge.bridge-nf-call-iptables = 1
+net.bridge.bridge-nf-call-ip6tables = 1
+net.ipv4.ip_forward = 1
+EOF
+    
+    # 应用内核参数
+    sudo sysctl --system
+}
+
+# 安装 Docker
 install_docker() {
-    if ! check_command docker; then
-        log_info "正在安装 Docker..."
-        curl -fsSL https://get.docker.com | sh
-        sudo systemctl start docker
-        sudo systemctl enable docker
-    else
+    if command -v docker &> /dev/null; then
         log_info "Docker 已安装"
+    else
+        log_info "安装 Docker..."
+        # 卸载旧版本
+        sudo yum remove -y docker docker-client docker-client-latest docker-common docker-latest docker-latest-logrotate docker-logrotate docker-engine
+
+        # 安装必要的依赖
+        sudo yum install -y yum-utils device-mapper-persistent-data lvm2
+
+        # 添加 Docker 仓库
+        sudo yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+
+        # 安装 Docker
+        sudo yum install -y docker-ce docker-ce-cli containerd.io
     fi
+
+    # 修复网络配置
+    fix_network
+
+    # 启动 Docker（添加错误处理）
+    log_info "启动 Docker 服务..."
+    if ! sudo systemctl start docker; then
+        log_error "Docker 服务启动失败，尝试修复..."
+        
+        # 停止 Docker 相关服务
+        sudo systemctl stop docker
+        sudo systemctl stop docker.socket
+        sudo systemctl stop containerd
+        
+        # 强制结束相关进程
+        sudo killall -9 docker || true
+        sudo killall -9 containerd || true
+        
+        # 清理 Docker 目录
+        log_info "清理 Docker 目录..."
+        sudo systemctl stop docker.service
+        sudo systemctl stop containerd.service
+        
+        # 使用 find 和 rm 逐个删除文件
+        sudo find /var/lib/docker -type f -exec rm -f {} \;
+        sudo find /var/lib/docker -type l -exec rm -f {} \;
+        sudo find /var/lib/docker -type d -empty -delete
+        
+        sudo rm -f /etc/docker/daemon.json
+        
+        # 重新创建 Docker 目录
+        sudo mkdir -p /var/lib/docker
+        sudo mkdir -p /etc/docker
+        
+        # 重新安装 Docker
+        sudo yum remove -y docker-ce docker-ce-cli containerd.io
+        sudo yum clean all
+        sudo yum makecache
+        sudo yum install -y docker-ce docker-ce-cli containerd.io
+        
+        # 设置正确的权限
+        sudo chown root:root /var/lib/docker
+        sudo chmod 701 /var/lib/docker
+        
+        # 重置 systemd 配置
+        sudo systemctl daemon-reload
+        
+        # 再次修复网络配置
+        fix_network
+        
+        # 再次尝试启动
+        if ! sudo systemctl start docker; then
+            log_error "Docker 服务启动失败，请检查系统日志"
+            log_info "运行以下命令查看详细错误："
+            log_info "systemctl status docker.service"
+            log_info "journalctl -xe"
+            exit 1
+        fi
+    fi
+
+    # 设置开机启动
+    sudo systemctl enable docker
+
+    # 验证安装
+    if ! docker --version; then
+        log_error "Docker 安装失败"
+        exit 1
+    fi
+    
+    log_info "Docker 安装成功"
+}
+
+# 配置 Docker
+configure_docker() {
+    log_info "检查 Docker 配置..."
+    
+    # 如果 Docker 已经在运行且配置文件存在，跳过配置
+    if [ -f "/etc/docker/daemon.json" ] && systemctl is-active docker &> /dev/null; then
+        log_info "Docker 已配置且正在运行，跳过配置"
+        return 0
+    fi
+    
+    log_info "配置 Docker..."
+    
+    # 确保目录存在
+    sudo mkdir -p /etc/docker
+    
+    # 检查是否需要更新配置
+    local need_restart=false
+    if [ ! -f "/etc/docker/daemon.json" ]; then
+        need_restart=true
+    else
+        local old_config=$(cat /etc/docker/daemon.json)
+        local new_config='{
+    "registry-mirrors": [
+        "https://mirror.ccs.tencentyun.com",
+        "https://docker.mirrors.ustc.edu.cn",
+        "https://registry.docker-cn.com"
+    ],
+    "storage-driver": "overlay2",
+    "log-driver": "json-file",
+    "log-opts": {
+        "max-size": "100m",
+        "max-file": "3"
+    },
+    "iptables": true,
+    "ip-forward": true,
+    "ip-masq": true,
+    "userland-proxy": false
+}'
+        if [ "$old_config" != "$new_config" ]; then
+            need_restart=true
+        fi
+    fi
+    
+    # 仅在需要时更新配置并重启
+    if [ "$need_restart" = true ]; then
+        # 配置 Docker 镜像加速和其他选项
+        sudo tee /etc/docker/daemon.json > /dev/null << EOL
+{
+    "registry-mirrors": [
+        "https://mirror.ccs.tencentyun.com",
+        "https://docker.mirrors.ustc.edu.cn",
+        "https://registry.docker-cn.com"
+    ],
+    "storage-driver": "overlay2",
+    "log-driver": "json-file",
+    "log-opts": {
+        "max-size": "100m",
+        "max-file": "3"
+    },
+    "iptables": true,
+    "ip-forward": true,
+    "ip-masq": true,
+    "userland-proxy": false
+}
+EOL
+    
+        # 设置正确的权限
+        sudo chown root:root /etc/docker/daemon.json
+        sudo chmod 644 /etc/docker/daemon.json
+        
+        # 重启 Docker 服务
+        log_info "配置已更改，重启 Docker 服务..."
+        sudo systemctl daemon-reload
+        
+        if ! sudo systemctl restart docker; then
+            log_error "Docker 服务重启失败"
+            log_info "请检查 Docker 日志："
+            sudo systemctl status docker.service
+            exit 1
+        fi
+        
+        # 等待 Docker 服务完全启动
+        sleep 5
+    fi
+    
+    # 验证 Docker 是否正常运行
+    if ! docker info &> /dev/null; then
+        log_error "Docker 配置失败，服务未正常运行"
+        exit 1
+    fi
+    
+    log_info "Docker 配置完成"
 }
 
 # 检查并安装 Docker Compose
@@ -54,55 +270,86 @@ install_docker_compose() {
     fi
 }
 
-# 配置 Docker
-configure_docker() {
-    log_info "配置 Docker..."
-    
-    # 创建 Docker 配置目录
-    sudo mkdir -p /etc/docker
-    
-    # 配置镜像加速器
-    cat << EOF | sudo tee /etc/docker/daemon.json
-{
-    "registry-mirrors": [
-        "https://mirror.ccs.tencentyun.com",
-        "https://docker.mirrors.ustc.edu.cn",
-        "https://registry.docker-cn.com",
-        "https://hub-mirror.c.163.com"
-    ]
-}
-EOF
-    
-    # 重启 Docker 服务
-    sudo systemctl daemon-reload
-    sudo systemctl restart docker
-    
-    log_info "Docker 配置完成"
-    return 0
-}
-
 # 安装必要工具
 install_tools() {
     log_info "安装必要工具..."
     
-    # 检测包管理器
-    if command -v yum >/dev/null 2>&1; then
-        # CentOS/RHEL
-        sudo yum install -y lsof firewalld
-        sudo systemctl start firewalld
-        sudo systemctl enable firewalld
-    elif command -v apt-get >/dev/null 2>&1; then
-        # Debian/Ubuntu
-        sudo apt-get update
-        sudo apt-get install -y lsof ufw
-        sudo ufw enable
+    local tools=(
+        "wget"
+        "git"
+        "curl"
+        "net-tools"
+    )
+    
+    local need_install=false
+    for tool in "${tools[@]}"; do
+        if ! command -v "$tool" &> /dev/null; then
+            need_install=true
+            break
+        fi
+    done
+    
+    if [ "$need_install" = true ]; then
+        sudo yum install -y wget git curl net-tools
     else
-        log_error "不支持的操作系统"
-        return 1
+        log_info "所需工具已安装"
     fi
     
-    log_info "工具安装完成"
     return 0
+}
+
+# 安装 Python 3.9
+install_python39() {
+    # 检查 Python 3.9 是否已安装且可用
+    if command -v python3.9 &> /dev/null && python3.9 -c "import sys; exit(0 if sys.version_info >= (3, 9) else 1)" &> /dev/null; then
+        log_info "Python 3.9 已安装"
+        
+        # 检查 pip 是否正常工作
+        if python3.9 -m pip --version &> /dev/null; then
+            log_info "pip 已安装且正常工作"
+            return 0
+        fi
+    fi
+
+    log_info "安装 Python 3.9..."
+    
+    # 添加 EPEL 仓库
+    if ! rpm -q epel-release &> /dev/null; then
+        sudo yum install -y epel-release
+    fi
+    
+    # 添加 IUS 仓库
+    if ! rpm -q ius-release &> /dev/null; then
+        sudo yum install -y https://repo.ius.io/ius-release-el7.rpm
+    fi
+    
+    # 安装 Python 3.9（如果未安装）
+    if ! rpm -q python39 &> /dev/null; then
+        sudo yum install -y python39 python39-devel
+    fi
+    
+    # 安装 pip（如果未安装）
+    if ! python3.9 -m pip --version &> /dev/null; then
+        sudo yum install -y python39-pip
+    fi
+    
+    # 创建软链接（如果不存在）
+    if [ ! -f /usr/local/bin/python3 ]; then
+        sudo ln -sf /usr/bin/python3.9 /usr/local/bin/python3
+    fi
+    if [ ! -f /usr/local/bin/pip3 ]; then
+        sudo ln -sf /usr/bin/pip3.9 /usr/local/bin/pip3
+    fi
+
+    # 验证安装
+    if ! command -v python3.9 &> /dev/null; then
+        log_error "Python 3.9 安装失败"
+        return 1
+    fi
+
+    log_info "Python 3.9 安装成功"
+    python3.9 --version
+    python3.9 -m pip --version
 }
 
 # 强制释放端口
@@ -216,24 +463,33 @@ open_ports() {
     return 0
 }
 
-# 设置环境变量
+# 配置环境变量
 setup_env() {
-    log_info "设置环境变量..."
+    log_info "配置环境变量..."
     
-    # 设置API和Web端口
-    export API_PORT=3102
-    export WEB_PORT=3101
+    # 确保目录存在
+    mkdir -p api
+    mkdir -p web
     
-    # 将环境变量写入配置文件，以便持久化
-    cat > /etc/profile.d/blogkeeper.sh << EOF
-export API_PORT=3102
-export WEB_PORT=3101
-EOF
+    # API 环境变量
+    if [ ! -f api/.env ]; then
+        log_info "创建 api/.env 文件..."
+        cat > api/.env << EOL
+API_HOST=127.0.0.1
+API_PORT=3102
+CORS_ORIGINS=http://localhost:3101,http://127.0.0.1:3101
+EOL
+    fi
     
-    # 立即生效
-    source /etc/profile.d/blogkeeper.sh
+    # Web 环境变量
+    if [ ! -f web/.env ]; then
+        log_info "创建 web/.env 文件..."
+        cat > web/.env << EOL
+VITE_API_HOST=http://127.0.0.1:3102
+EOL
+    fi
     
-    log_info "环境变量设置完成"
+    log_info "环境变量配置完成"
 }
 
 # 拉取代码
@@ -272,11 +528,22 @@ start_services() {
         return 1
     fi
     
+    # 重启 Docker 服务
+    log_info "重启 Docker 服务..."
+    sudo systemctl restart docker
+    sleep 5  # 等待 Docker 服务完全启动
+    
+    # 清理 Docker 网络
+    log_info "清理 Docker 网络..."
+    docker network prune -f
+    
     # 停止现有服务
-    docker-compose down
+    log_info "停止现有服务..."
+    docker-compose down --remove-orphans
     
     # 启动服务
     if [ -f "docker-compose.yml" ]; then
+        log_info "启动新服务..."
         docker-compose up -d --build
         
         # 等待服务启动
@@ -289,94 +556,16 @@ start_services() {
             docker-compose logs
             return 1
         fi
+        
+        log_info "服务启动成功！"
+        log_info "前端访问地址: http://localhost:3101"
+        log_info "后端API地址: http://localhost:3102"
     else
         log_error "docker-compose.yml 不存在"
         return 1
     fi
     
-    log_info "服务启动完成"
     return 0
-}
-
-# 修复yum的Python版本
-fix_yum() {
-    log_info "修复yum配置..."
-    
-    # 备份原始yum文件
-    if [ ! -f /usr/bin/yum.backup ]; then
-        sudo cp /usr/bin/yum /usr/bin/yum.backup
-    fi
-    
-    # 修改yum脚本，强制使用python2
-    sudo sed -i '1c #!/usr/bin/python2' /usr/bin/yum
-    sudo sed -i '1c #!/usr/bin/python2' /usr/libexec/urlgrabber-ext-down
-    
-    log_info "yum配置修复完成"
-}
-
-# 检查并安装Python 3.9
-install_python() {
-    log_info "检查Python版本..."
-    
-    # 检查是否已安装Python 3.9.0
-    if ! command -v python3.9 &> /dev/null || ! python3.9 -c "import sys; assert sys.version_info[:3] == (3,9,0), 'Wrong version'" &> /dev/null; then
-        log_warn "未检测到Python 3.9.0，开始安装..."
-        
-        # 确保yum使用python2
-        fix_yum
-        
-        log_info "安装编译依赖..."
-        sudo yum groupinstall -y "Development Tools"
-        sudo yum install -y openssl-devel bzip2-devel libffi-devel xz-devel zlib-devel sqlite-devel
-
-        cd /tmp
-        wget https://www.python.org/ftp/python/3.9.0/Python-3.9.0.tgz
-        tar xzf Python-3.9.0.tgz
-        cd Python-3.9.0
-        ./configure --prefix=/usr/local --enable-optimizations
-        make -j $(nproc)
-        sudo make install
-        
-        cd /tmp
-        rm -rf Python-3.9.0 Python-3.9.0.tgz
-    fi
-    
-    # 设置Python版本的软链接
-    log_info "配置Python版本..."
-    
-    # 备份原有的Python软链接
-    if [ -L /usr/bin/python ]; then
-        sudo mv /usr/bin/python /usr/bin/python.backup
-    fi
-    if [ -L /usr/bin/python3 ]; then
-        sudo mv /usr/bin/python3 /usr/bin/python3.backup
-    fi
-    
-    # 设置Python 2.7
-    sudo ln -sf /usr/bin/python2.7 /usr/bin/python2
-    
-    # 设置Python 3.9为默认Python
-    sudo ln -sf /usr/local/bin/python3.9 /usr/bin/python3
-    sudo ln -sf /usr/local/bin/python3.9 /usr/bin/python
-    sudo ln -sf /usr/local/bin/pip3.9 /usr/bin/pip3
-    sudo ln -sf /usr/local/bin/pip3.9 /usr/bin/pip
-    
-    # 验证Python版本
-    log_info "验证Python版本..."
-    python -V | grep -q "Python 3.9.0" || {
-        log_error "Python 3.9.0设置为默认版本失败"
-        exit 1
-    }
-    
-    log_info "升级pip并安装依赖..."
-    python -m pip install --upgrade pip
-    cd /root/BlogKeeper/api
-    pip install -r requirements.txt
-    
-    log_info "Python 3.9.0环境安装完成，已设置为默认Python版本"
-    log_info "可以使用以下命令访问不同版本："
-    log_info "- python 或 python3 -> Python 3.9.0"
-    log_info "- python2 -> Python 2.7"
 }
 
 # 主函数
@@ -389,22 +578,19 @@ main() {
         exit 1
     fi
     
-    # 首先修复yum
-    fix_yum
-    
     # 安装必要工具
     install_tools
     
-    # 检查并安装Python
-    install_python
+    # 安装 Python 3.9
+    install_python39
     
-    # 检查并安装Docker
+    # 检查并安装 Docker
     install_docker
     
-    # 检查并安装Docker Compose
+    # 检查并安装 Docker Compose
     install_docker_compose
     
-    # 配置Docker
+    # 配置 Docker
     configure_docker
     
     # 检查端口占用
@@ -417,18 +603,18 @@ main() {
     # 开放防火墙端口
     open_ports
     
-    # 设置环境变量
-    setup_env
-    
     # 拉取代码
     pull_code
+    
+    # 配置环境变量
+    setup_env
     
     # 启动服务
     start_services
     
     log_info "部署完成！"
-    log_info "前端访问地址: http://localhost:${WEB_PORT}"
-    log_info "后端API地址: http://localhost:${API_PORT}"
+    log_info "前端访问地址: http://localhost:3101"
+    log_info "后端API地址: http://localhost:3102"
 }
 
 # 执行主函数
