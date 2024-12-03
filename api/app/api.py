@@ -1,6 +1,16 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+# Fix platform module
+import sys
+if not hasattr(sys.modules.get('platform', None), 'system'):
+    import platform as _platform
+    def system(): return 'Linux'
+    def machine(): return 'x86_64'
+    _platform.system = system
+    _platform.machine = machine
+    sys.modules['platform'] = _platform
+
 from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel, HttpUrl, validator
 from typing import List
