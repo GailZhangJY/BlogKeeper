@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from fastapi import FastAPI, HTTPException, Request
-from pydantic import BaseModel, HttpUrl, validator
+from pydantic import BaseModel, HttpUrl, field_validator, validator
 from typing import List
 from pathlib import Path
 import uvicorn
@@ -25,12 +25,13 @@ load_dotenv()
 # 获取配置
 API_HOST = os.getenv('API_HOST', '0.0.0.0')
 API_PORT = int(os.getenv('API_PORT', '3102'))
-CORS_ORIGINS = [
-    f"http://{API_HOST}:3101",  # 前端地址
-    "http://localhost:3101",
-    "http://127.0.0.1:3101",
-    "http://104.243.19.88:3101"  # 生产环境地址
-]
+
+# 从环境变量获取 CORS 配置
+CORS_ORIGINS = os.getenv('CORS_ORIGINS', '').split(',')
+logger.info(f"从环境变量读取的 CORS_ORIGINS: {CORS_ORIGINS}")
+# 过滤掉空字符串
+CORS_ORIGINS = [origin.strip() for origin in CORS_ORIGINS if origin.strip()]
+logger.info(f"最终的 CORS_ORIGINS: {CORS_ORIGINS}")
 
 # 创建FastAPI应用
 app = FastAPI(title="BlogKeeper API")
@@ -59,6 +60,14 @@ class ParseRequest(BaseModel):
     url: HttpUrl
     formats: List[str]
 
+    @field_validator('formats')
+    def validate_formats(cls, v):
+        valid_formats = {'html', 'md', 'pdf', 'mhtml'}
+        for fmt in v:
+            if fmt not in valid_formats:
+                raise ValueError(f'Invalid format: {fmt}. Valid formats are: {valid_formats}')
+        return v
+
 class FileInfo(BaseModel):
     title: str
     download_url: str
@@ -69,7 +78,7 @@ class BatchDownloadFile(BaseModel):
     url: str
     filename: str
 
-    @validator('url')
+    @field_validator('url')
     def validate_url(cls, v):
         if not v.startswith('/download/'):
             raise ValueError('URL must start with /download/')
@@ -78,7 +87,7 @@ class BatchDownloadFile(BaseModel):
 class BatchDownloadRequest(BaseModel):
     files: List[BatchDownloadFile]
 
-    @validator('files')
+    @field_validator('files')
     def validate_files(cls, v):
         if not v:
             raise ValueError('files list cannot be empty')
