@@ -318,27 +318,27 @@ fix_yum() {
 install_python() {
     log_info "检查Python版本..."
     
-    # 检查是否已安装Python 3.9
-    if ! command -v python3.9 &> /dev/null; then
-        log_warn "未检测到Python 3.9，开始安装..."
+    # 检查是否已安装Python 3.9.0
+    if ! command -v python3.9 &> /dev/null || ! python3.9 -c "import sys; assert sys.version_info[:3] == (3,9,0), 'Wrong version'" &> /dev/null; then
+        log_warn "未检测到Python 3.9.0，开始安装..."
         
         # 确保yum使用python2
         fix_yum
         
         log_info "安装编译依赖..."
         sudo yum groupinstall -y "Development Tools"
-        sudo yum install -y openssl-devel bzip2-devel libffi-devel xz-devel zlib-devel sqlite-devel readline-devel tk-devel gdbm-devel db4-devel libpcap-devel python39-devel
+        sudo yum install -y openssl-devel bzip2-devel libffi-devel xz-devel zlib-devel sqlite-devel
 
         cd /tmp
-        wget https://www.python.org/ftp/python/3.9.18/Python-3.9.18.tgz
-        tar xzf Python-3.9.18.tgz
-        cd Python-3.9.18
-        ./configure --enable-optimizations --with-ensurepip=install --enable-shared LDFLAGS="-Wl,-rpath /usr/local/lib"
+        wget https://www.python.org/ftp/python/3.9.0/Python-3.9.0.tgz
+        tar xzf Python-3.9.0.tgz
+        cd Python-3.9.0
+        ./configure --prefix=/usr/local --enable-optimizations
         make -j $(nproc)
-        sudo make altinstall
+        sudo make install
         
         cd /tmp
-        rm -rf Python-3.9.18 Python-3.9.18.tgz
+        rm -rf Python-3.9.0 Python-3.9.0.tgz
     fi
     
     # 设置Python版本的软链接
@@ -363,28 +363,19 @@ install_python() {
     
     # 验证Python版本
     log_info "验证Python版本..."
-    python -V | grep -q "Python 3.9" || {
-        log_error "Python 3.9设置为默认版本失败"
+    python -V | grep -q "Python 3.9.0" || {
+        log_error "Python 3.9.0设置为默认版本失败"
         exit 1
     }
     
     log_info "升级pip并安装依赖..."
     python -m pip install --upgrade pip
     cd /root/BlogKeeper/api
+    pip install -r requirements.txt
     
-    # 清理并重新安装依赖
-    pip uninstall -y -r requirements.txt || true
-    pip install --no-cache-dir -r requirements.txt
-    
-    # 验证platform模块
-    python -c "import platform; print(platform.system())" || {
-        log_error "Python platform模块验证失败"
-        exit 1
-    }
-    
-    log_info "Python 3.9环境安装完成，已设置为默认Python版本"
+    log_info "Python 3.9.0环境安装完成，已设置为默认Python版本"
     log_info "可以使用以下命令访问不同版本："
-    log_info "- python 或 python3 -> Python 3.9"
+    log_info "- python 或 python3 -> Python 3.9.0"
     log_info "- python2 -> Python 2.7"
 }
 
