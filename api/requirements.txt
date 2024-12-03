@@ -16,3 +16,4 @@ html2text==2020.1.16
 python-dotenv==1.0.0
 aiofiles==23.2.1
 pdfkit==1.0.0
+colorama==0.4.6
