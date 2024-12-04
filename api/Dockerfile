@@ -8,6 +8,15 @@ RUN apt-get update && apt-get install -y \
     fonts-noto-cjk \
     fonts-wqy-zenhei \
     fonts-wqy-microhei \
+    fontconfig \
+    libfreetype6 \
+    libjpeg62-turbo \
+    libpng16-16 \
+    libx11-6 \
+    libxcb1 \
+    libxext6 \
+    libxrender1 \
+    wkhtmltopdf \
     # 下载并安装更多中文字体
     && mkdir -p /usr/share/fonts/chinese \
     && fc-cache -f -v \
