@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 
 // API配置
-const DEFAULT_API_HOST = 'https://www.blog-keeper.com';
+const DEFAULT_API_HOST = 'https://api.blog-keeper.com';
 
 export const API_CONFIG = {
     HOST: (() => {
