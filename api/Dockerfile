@@ -1,5 +1,33 @@
 FROM python:3.9
 
+# 安装 wkhtmltopdf 及其依赖
+RUN apt-get update && apt-get install -y \
+    wget \
+    fontconfig \
+    libfreetype6 \
+    libjpeg62-turbo \
+    libpng16-16 \
+    libx11-6 \
+    libxcb1 \
+    libxext6 \
+    libxrender1 \
+    xfonts-75dpi \
+    xfonts-base \
+    fonts-noto-cjk \
+    fonts-wqy-zenhei \
+    fonts-wqy-microhei \
+    && wget https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6-1/wkhtmltox_0.12.6-1.buster_amd64.deb \
+    && dpkg -i wkhtmltox_0.12.6-1.buster_amd64.deb \
+    && rm wkhtmltox_0.12.6-1.buster_amd64.deb \
+    # 下载并安装更多中文字体
+    && mkdir -p /usr/share/fonts/chinese \
+    && wget -O /usr/share/fonts/chinese/simsun.ttc https://github.com/Yucao42/noto-fonts/raw/master/SimSun.ttc \
+    && wget -O /usr/share/fonts/chinese/simhei.ttf https://github.com/Yucao42/noto-fonts/raw/master/SimHei.ttf \
+    && wget -O /usr/share/fonts/chinese/msyh.ttf https://github.com/Yucao42/noto-fonts/raw/master/MicrosoftYaHei.ttf \
+    && wget -O /usr/share/fonts/chinese/msyhbd.ttf https://github.com/Yucao42/noto-fonts/raw/master/MicrosoftYaHeiBold.ttf \
+    && fc-cache -f -v \
+    && rm -rf /var/lib/apt/lists/*
+
 # 设置pip源为清华源
 RUN pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple/ \
     && pip config set install.trusted-host pypi.tuna.tsinghua.edu.cn
