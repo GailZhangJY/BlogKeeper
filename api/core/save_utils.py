@@ -133,34 +133,21 @@ def save_as_markdown(title, content, css_styles, file_name, file_path, base_url=
         logger.error(f"保存Markdown文件时出错: {str(e)}")
         return None
 
-def get_wkhtmltopdf_path():
-    """获取wkhtmltopdf可执行文件的路径
-    Returns:
-        str: wkhtmltopdf可执行文件的路径
+def get_wkhtmltopdf_path() -> str:
     """
-    try:
-        # 获取项目根目录
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        root_dir = os.path.dirname(current_dir)  # 向上一级到达项目根目录
-        
-        # 构建wkhtmltopdf路径
-        if sys.platform.startswith('win'):
-            exec_name = 'wkhtmltopdf.exe'
-        else:
-            exec_name = 'wkhtmltopdf'
-            
-        wkhtmltopdf_path = os.path.join(root_dir, 'tools', 'wkhtmltopdf', 'bin', exec_name)
-        
-        if os.path.exists(wkhtmltopdf_path):
-            logger.info(f"找到wkhtmltopdf: {wkhtmltopdf_path}")
-            return wkhtmltopdf_path
-        else:
-            logger.error(f"未找到wkhtmltopdf: {wkhtmltopdf_path}")
-            return None
-            
-    except Exception as e:
-        logger.error(f"获取wkhtmltopdf路径失败: {str(e)}")
-        return None
+    获取 wkhtmltopdf 可执行文件的路径
+    Linux 使用系统安装的版本，Windows 使用项目自带的版本
+    """
+    if platform.system() == 'Windows':
+        # Windows 使用项目自带的版本
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        wkhtmltopdf_path = os.path.join(base_dir, 'tools', 'wkhtmltopdf', 'bin', 'wkhtmltopdf.exe')
+        if not os.path.exists(wkhtmltopdf_path):
+            raise FileNotFoundError(f'wkhtmltopdf not found at {wkhtmltopdf_path}')
+        return wkhtmltopdf_path
+    else:
+        # Linux 使用系统安装的版本
+        return 'wkhtmltopdf'
 
 def save_as_pdf(title, content, css_styles, file_name, file_path, base_url=None, platform=None):
     """将博客内容保存为PDF格式"""

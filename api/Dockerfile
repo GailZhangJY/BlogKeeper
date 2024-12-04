@@ -1,20 +1,26 @@
 FROM python:3.9
+
+# 安装 wkhtmltopdf
+RUN wget https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6-1/wkhtmltox-0.12.6-1.centos7.x86_64.rpm \
+    && yum install -y wkhtmltox-0.12.6-1.centos7.x86_64.rpm \
+    && rm wkhtmltox-0.12.6-1.centos7.x86_64.rpm
+
 # 设置pip源为清华源
 RUN pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple/ \
     && pip config set install.trusted-host pypi.tuna.tsinghua.edu.cn
 
 WORKDIR /app
-# 先复制 tools 目录，这样如果其他文件变化不会重新构建这一层
-COPY tools /app/tools
-# 设置 wkhtmltopdf 可执行权限
-RUN chmod +x /app/tools/wkhtmltopdf/bin/wkhtmltopdf
 
-# 复制其他文件
+# 先复制并安装依赖，这样如果代码改变但依赖没变，可以利用缓存
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
+
+# 复制应用代码
 COPY . .
+
 # 创建必要的目录并设置权限
 RUN mkdir -p /app/temp /app/logs && \
     chmod -R 777 /app/temp /app/logs
+
 # 启动 FastAPI 应用
 CMD ["python", "-m", "uvicorn", "api:app", "--host", "0.0.0.0", "--port", "3102"]
