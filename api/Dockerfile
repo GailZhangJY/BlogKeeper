@@ -10,10 +10,6 @@ RUN apt-get update && apt-get install -y \
     fonts-wqy-microhei \
     # 下载并安装更多中文字体
     && mkdir -p /usr/share/fonts/chinese \
-    && wget -O /usr/share/fonts/chinese/simsun.ttc https://github.com/Yucao42/noto-fonts/raw/master/SimSun.ttc \
-    && wget -O /usr/share/fonts/chinese/simhei.ttf https://github.com/Yucao42/noto-fonts/raw/master/SimHei.ttf \
-    && wget -O /usr/share/fonts/chinese/msyh.ttf https://github.com/Yucao42/noto-fonts/raw/master/MicrosoftYaHei.ttf \
-    && wget -O /usr/share/fonts/chinese/msyhbd.ttf https://github.com/Yucao42/noto-fonts/raw/master/MicrosoftYaHeiBold.ttf \
     && fc-cache -f -v \
     && rm -rf /var/lib/apt/lists/*
 
