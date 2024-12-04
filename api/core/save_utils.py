@@ -170,45 +170,77 @@ def get_wkhtmltopdf_path() -> str:
 def save_as_pdf(title, content, css_styles, file_name, file_path, base_url=None, platform=None):
     """将博客内容保存为PDF格式"""
     try:
-        # 1. 先保存为临时HTML文件
-        temp_html = os.path.join(file_path, f"{os.path.splitext(file_name)[0]}_temp.html")
-        with open(temp_html, 'w', encoding='utf-8') as f:
-            html_content = create_html_template(title, content, css_styles, base_url, platform)
-            f.write(html_content)
-        
-        # 2. 配置wkhtmltopdf选项
+        # 获取wkhtmltopdf路径
+        wkhtmltopdf_path = get_wkhtmltopdf_path()
+        logger.info(f"save_as_pdf wkhtmltopdf_path=: {wkhtmltopdf_path}")
+        if not wkhtmltopdf_path:
+            raise Exception("未找到wkhtmltopdf")
+
+        # 配置PDF选项
         options = {
             'enable-local-file-access': None,  # 允许访问本地文件
             'encoding': 'utf-8',
             #'no-images': None,  # 禁用图片加载，避免网络问题
             #'disable-javascript': None  # 禁用JavaScript
         }
+
+        # 添加自定义 CSS
+        custom_css = f"""
+        <style>
+            {css_styles}
+            @font-face {{
+                font-family: 'WenQuanYi Zen Hei';
+                src: local('WenQuanYi Zen Hei');
+            }}
+            body {{
+                font-family: 'WenQuanYi Zen Hei', Arial, sans-serif;
+            }}
+        </style>
+        """
+
+        # 组合HTML内容
+        html_content = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>{title}</title>
+            {custom_css}
+        </head>
+        <body>
+            <h1>{title}</h1>
+            {content}
+        </body>
+        </html>
+        """
+
+        # filepath = get_save_path(file_name, file_path)
+        # filepath = filepath.replace('.pdf', 'temp.html')
+        # # 保存HTML文件
+        # with open(filepath, 'w', encoding='utf-8') as f:
+        #     f.write(html_content)
+
+        # 配置pdfkit
+        config = pdfkit.configuration(wkhtmltopdf=wkhtmltopdf_path)
+
+        # 生成PDF
+        output_path =  os.path.join(file_path, file_name)
+        pdfkit.from_string(html_content, output_path, options=options, configuration=config)
         
-        # 3. 生成PDF文件路径
-        pdf_path = os.path.join(file_path, file_name)
-        
-        try:
-            # 4. 使用wkhtmltopdf转换
-            config = pdfkit.configuration(wkhtmltopdf=get_wkhtmltopdf_path())
-            pdfkit.from_file(temp_html, pdf_path, options=options, configuration=config)
-            
-            # 5. 删除临时HTML文件
-            os.remove(temp_html)
-            return pdf_path
-            
-        except Exception as e:
-            logger.error(f"PDF转换失败: {str(e)}")
-            # 如果转换失败，尝试直接从HTML字符串转换
-            try:
-                pdfkit.from_string(html_content, pdf_path, options=options, configuration=config)
-                return pdf_path
-            except Exception as e2:
-                logger.error(f"从字符串转换PDF也失败: {str(e2)}")
-                return None
-                
+        logger.info(f"PDF保存成功: {output_path}")
+        return output_path
+
     except Exception as e:
-        logger.error(f"保存PDF文件时出错: {str(e)}")
-        return None
+        logger.error(f"PDF转换失败: {str(e)}")
+        try:
+            # 如果转换失败，尝试直接从字符串转换
+            config = pdfkit.configuration(wkhtmltopdf=wkhtmltopdf_path)
+            output_path = os.path.join(file_path, f"{file_name}.pdf")
+            pdfkit.from_string(content, output_path, configuration=config)
+            return output_path
+        except Exception as e2:
+            logger.error(f"从字符串转换PDF也失败: {str(e2)}")
+            return None
 
 def save_as_mhtml(title, content, css_styles, file_name, file_path, base_url=None, platform=None):
     """将HTML内容保存为MHTML格式

@@ -210,8 +210,8 @@ class BaseBlogParser(ABC):
         # 移除Windows文件名中的非法字符
         invalid_chars = r'[<>:"/\\|?*\x00-\x1f]'
         safe_name = re.sub(invalid_chars, '-', filename)
-        # 规范化空格并去除首尾空格
-        safe_name = re.sub(r'\s+', ' ', safe_name).strip()
+        # 去除所有空格
+        safe_name = re.sub(r'[\s\u3000]+', '', safe_name)
         # 确保文件名不超过Windows限制（255字符）
         if len(safe_name) > 240:  # 留一些空间给扩展名
             safe_name = safe_name[:240]
