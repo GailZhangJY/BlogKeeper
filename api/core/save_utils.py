@@ -147,7 +147,25 @@ def get_wkhtmltopdf_path() -> str:
         return wkhtmltopdf_path
     else:
         # Linux 使用系统安装的版本
-        return 'wkhtmltopdf'
+        # 尝试多个可能的路径
+        possible_paths = [
+            '/usr/local/bin/wkhtmltopdf',
+            '/usr/bin/wkhtmltopdf',
+            'wkhtmltopdf'  # 如果在 PATH 中
+        ]
+        for path in possible_paths:
+            if os.path.exists(path):
+                return path
+            # 对于 'wkhtmltopdf'，使用 which 命令检查
+            elif path == 'wkhtmltopdf':
+                try:
+                    import subprocess
+                    result = subprocess.run(['which', 'wkhtmltopdf'], capture_output=True, text=True)
+                    if result.returncode == 0:
+                        return 'wkhtmltopdf'
+                except:
+                    pass
+        raise FileNotFoundError('wkhtmltopdf not found in system')
 
 def save_as_pdf(title, content, css_styles, file_name, file_path, base_url=None, platform=None):
     """将博客内容保存为PDF格式"""
