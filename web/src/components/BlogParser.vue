@@ -127,7 +127,7 @@ const blogUrl = ref('')
 const isLoading = ref(false)
 const selectedFormats = ref<string[]>(['html'])
 const results = ref<ParseResult[]>([])
-const isTestMode = ref(true)  // 开发测试模式
+const isTestMode = ref(false)  // 开发测试模式
 
 // 测试数据
 const testResults = [
