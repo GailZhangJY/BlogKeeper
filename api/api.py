@@ -22,6 +22,7 @@ import os
 import shutil
 from datetime import datetime, timedelta
 from apscheduler.schedulers.background import BackgroundScheduler
+import time
 
 # 加载环境变量
 load_dotenv()
@@ -99,7 +100,7 @@ class BatchDownloadRequest(BaseModel):
 
 @app.post("/batch-download")
 async def batch_download(request: Request, body: BatchDownloadRequest):
-    """批量下载文件并打包成ZIP"""
+    start_time = time.time()
     try:
         raw_body = await request.body()
         logger.info(f"原始请求体: {raw_body}")
@@ -138,6 +139,11 @@ async def batch_download(request: Request, body: BatchDownloadRequest):
 
         logger.info(f"生成ZIP文件: {zip_filename}")
 
+        # 记录处理时间
+        total_time = time.time() - start_time
+        logger.info("=== 批量下载性能统计 ===")
+        logger.info(f"总处理时间: {total_time:.2f}秒")
+
         # 返回ZIP文件，使用 urllib.parse.quote 处理中文文件名
         return StreamingResponse(
             zip_buffer,
@@ -156,22 +162,35 @@ async def batch_download(request: Request, body: BatchDownloadRequest):
 
 @app.post("/parse", response_model=List[FileInfo])
 async def parse_blog_api(request: ParseRequest):
+    start_time = time.time()
     try:
         # 创建输出目录
         output_dir = TEMP_DIR / str(hash(str(request.url)))
         output_dir.mkdir(exist_ok=True)
 
+        # 格式映射
+        format_mapping = {
+            'md': 'markdown',
+            'html': 'html',
+            'pdf': 'pdf',
+            'mhtml': 'mhtml'
+        }
+
+        # 转换格式名称
+        formats = [format_mapping.get(fmt, fmt) for fmt in request.formats]
+        logger.info(f"请求的原始格式: {request.formats}")
+        logger.info(f"转换后的格式: {formats}")
+
         # 准备保存选项
         save_options = {
-            "html": "html" in request.formats,
-            "markdown": "md" in request.formats,
-            "pdf": "pdf" in request.formats,
-            "mhtml": "mhtml" in request.formats
+            'formats': formats
         }
 
         # 创建解析器并解析博客
         parser = BlogParser()
+        parse_start = time.time()
         success = parser.parse(str(request.url), str(output_dir), save_options)
+        parse_time = time.time() - parse_start
 
         if not success:
             raise HTTPException(status_code=500, detail="博客解析失败")
@@ -181,30 +200,32 @@ async def parse_blog_api(request: ParseRequest):
         file_list = parser.get_file_list()
         logger.info(f"原始文件列表: {file_list}")
 
-        # 格式映射
-        format_mapping = {
-            "markdown": "md",
-            "html": "html",
-            "pdf": "pdf",
-            "mhtml": "mhtml"
-        }
-
-        requested_formats = set(format_mapping.get(fmt, fmt) for fmt in request.formats)
-        logger.info(f"请求的格式: {requested_formats}")
-
+        # 只返回请求的格式
         for file_info in file_list:
-            file_path = file_info["download_url"]
-            file_path = file_path.replace('\\', '/')
-            file_path = file_path.replace(TEMP_PATH, DOWNLOAD_DIR)
-            file_info["download_url"] = file_path
+            if file_info['format'] in formats:
+                # 修改下载URL的格式，确保使用正斜杠
+                file_path = file_info["download_url"]
+                file_path = file_path.replace('\\', '/')
+                file_path = file_path.replace(TEMP_PATH, DOWNLOAD_DIR)
+                file_info['download_url'] = file_path
 
-            logger.info(f"处理后的文件信息: {file_info}")
-            files.append(FileInfo(**file_info))
+                logger.info(f"处理后的文件信息: {file_info}")
+                files.append(FileInfo(**file_info))
+
+        # 记录处理时间
+        total_time = time.time() - start_time
+        logger.info("\n=== 博客解析性能统计 ===")
+        logger.info(f"总处理时间: {total_time:.2f}秒")
+        logger.info(f"内容解析时间: {parse_time:.2f}秒")
 
         logger.info(f"最终返回的文件列表: {files}")
+        if not files:
+            raise HTTPException(status_code=500, detail="未生成任何文件")
+            
         return files
 
     except Exception as e:
+        logger.error(f"解析博客时出错: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 # 定义清理函数

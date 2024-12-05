@@ -10,6 +10,9 @@ from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 from .save_utils import save_as_html, save_as_markdown, save_as_pdf, save_as_mhtml
 from .log_utils import logger
+import concurrent.futures
+from threading import Lock
+import time
 
 class BaseBlogParser(ABC):
     def __init__(self):
@@ -43,6 +46,8 @@ class BaseBlogParser(ABC):
         
         # 保存解析后的文件列表
         self.file_list = []
+        # 添加文件列表锁
+        self._file_list_lock = Lock()
 
     def get_file_list(self):
         """获取解析后的文件列表
@@ -76,12 +81,13 @@ class BaseBlogParser(ABC):
         logger.info("添加文件到文件列表：" + title)
         
         # 添加到文件列表
-        self.file_list.append({
-            "title": title,
-            "download_url": download_url,
-            "size": file_size,
-            "format": format_type.replace('markdown', 'md')
-        })
+        with self._file_list_lock:
+            self.file_list.append({
+                "title": title,
+                "download_url": download_url,
+                "size": file_size,
+                "format": format_type.replace('markdown', 'md')
+            })
 
     def _extract_element(self, soup, selectors, default='', get_text=True):
         """提取页面元素
@@ -349,6 +355,84 @@ class BaseBlogParser(ABC):
         css_styles = self._get_html_css(soup, base_url) + self._get_platform_css()     
         return css_styles
     
+    def _save_single_format(self, format_type, url, file_path):
+        """保存单个格式的文件"""
+        try:
+            handler = self.save_handlers[format_type]
+            file_name = self._get_file_name(format_type)
+            result = handler(
+                title=self.title,
+                content=self.content,
+                css_styles=self._css_styles,
+                file_name=file_name,
+                file_path=file_path,
+                base_url=url,
+                platform=self.platform_flag
+            )
+            if result:
+                self._add_file_to_list(file_path, file_name, format_type)
+            return bool(result)
+        except Exception as e:
+            logger.error(f"保存{format_type}格式失败: {str(e)}")
+            return False
+
+    def save_blog(self, url: str, output_dir: str = None, save_options: dict = None) -> bool:
+        """保存博客内容到不同格式"""
+        try:
+            # 获取需要保存的格式列表
+            formats = save_options.get('formats', ['html'])  # 默认保存为HTML
+            logger.info(f"开始保存博客，格式: {formats}")
+            
+            # 创建线程池
+            with concurrent.futures.ThreadPoolExecutor(max_workers=len(formats)) as executor:
+                # 提交所有任务
+                future_to_format = {
+                    executor.submit(self._save_single_format, fmt, url, output_dir): fmt
+                    for fmt in formats
+                }
+            
+                # 等待所有任务完成
+                results = []
+                format_times = {}
+                total_start_time = time.time()
+                
+                for future in concurrent.futures.as_completed(future_to_format):
+                    format_type = future_to_format[future]
+                    format_start_time = time.time()
+                    try:
+                        success = future.result()
+                        format_end_time = time.time()
+                        format_times[format_type] = format_end_time - format_start_time
+                        results.append(success)
+                        logger.info(f"{format_type}格式保存{'成功' if success else '失败'}")
+                    except Exception as e:
+                        logger.error(f"保存{format_type}格式失败: {str(e)}")
+                        results.append(False)
+                
+                total_time = time.time() - total_start_time
+                
+                # 打印性能统计
+                logger.info("\n=== 博客保存性能统计 ===")
+                logger.info(f"总处理时间: {total_time:.2f}秒")
+                
+                # 打印每种格式的处理时间
+                for fmt, fmt_time in format_times.items():
+                    logger.info(f"{fmt}格式处理时间: {fmt_time:.2f}秒")
+                
+                # 计算并行效率提升（安全处理除零情况）
+                if total_time > 0:
+                    parallel_speedup = sum(format_times.values()) / total_time
+                    logger.info(f"并行处理效率提升: {parallel_speedup:.1f}倍")
+                else:
+                    logger.info("处理时间过短，无法计算并行效率提升")
+            
+            # 只要有一个格式保存成功就返回True
+            return any(results)
+            
+        except Exception as e:
+            logger.error(f"解析文章失败: {str(e)}")
+            return False
+        
     def parse_blog(self, url: str, output_dir: str = None, save_options: dict = None) -> bool:
         """解析文章
         Args:
@@ -411,29 +495,3 @@ class BaseBlogParser(ABC):
         except Exception as e:
             logger.error(f"获取页面失败: {str(e)}")
             return None
-        
-
-    def save_blog(self, url: str, file_path: str, save_options: dict = None):
-        logger.info("开始保存文章")
-        if not save_options:
-            save_options = {'html': True}
-            
-        success = False
-        for format_type, enabled in save_options.items():
-            if enabled and format_type in self.save_handlers:
-                handler = self.save_handlers[format_type]
-                file_name = self._get_file_name(format_type)
-                result = handler(
-                    title=self.title,
-                    content=self.content,
-                    css_styles=self._css_styles,
-                    file_name=file_name,
-                    file_path=file_path,
-                    base_url=url,
-                    platform=self.platform_flag
-                )
-                success = success or bool(result)
-                if result:
-                    self._add_file_to_list(file_path, file_name, format_type)
-
-        return success
