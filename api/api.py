@@ -105,10 +105,8 @@ async def batch_download(request: Request, body: BatchDownloadRequest):
         zip_buffer = io.BytesIO()
         # 获取第一个文件名作为zip文件名
         first_file = body.files[0] if body.files else None
-        zip_filename = first_file.filename if first_file else "blog_content.zip"
-        # 确保zip_filename有.zip扩展名
-        if not zip_filename.endswith('.zip'):
-            zip_filename += '.zip'
+        filename_without_ext = first_file.filename.rsplit('.', 1)[0] if first_file else "blog_content"
+        zip_filename = f"{filename_without_ext}.zip"
 
         with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
             for file_info in body.files:

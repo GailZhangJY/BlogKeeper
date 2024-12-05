@@ -276,7 +276,8 @@ const formatFileSize = (bytes: number): string => {
 
 const downloadFile = async (result: ParseResult) => {
   try {
-    const response = await fetch(result.download_url)
+    const downloadUrl = `${apiHost.value}${result.download_url}`
+    const response = await fetch(downloadUrl)
     const blob = await response.blob()
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -303,7 +304,10 @@ const downloadAll = async () => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        results: results.value
+        files: results.value.map(result => ({
+          url: result.download_url,
+          filename: result.originalFilename || result.filename
+        }))
       }),
     })
     
