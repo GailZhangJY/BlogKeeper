@@ -18,6 +18,10 @@ from fastapi.staticfiles import StaticFiles
 from core.log_utils import logger
 from datetime import datetime
 from urllib.parse import quote
+import os
+import shutil
+from datetime import datetime, timedelta
+from apscheduler.schedulers.background import BackgroundScheduler
 
 # 加载环境变量
 load_dotenv()
@@ -202,6 +206,39 @@ async def parse_blog_api(request: ParseRequest):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+# 定义清理函数
+def cleanup_directories():
+    try:
+        # 获取当前时间
+        now = datetime.now()
+        print(f"开始清理目录... {now}")
+
+        # 清理temp目录
+        temp_dir = os.path.join(os.path.dirname(__file__), 'temp')
+        if os.path.exists(temp_dir):
+            shutil.rmtree(temp_dir)
+            os.makedirs(temp_dir)
+            print(f"已清理temp目录: {temp_dir}")
+
+        # 清理blog目录
+        blog_dir = os.path.join(os.path.dirname(__file__), 'blog')
+        if os.path.exists(blog_dir):
+            shutil.rmtree(blog_dir)
+            os.makedirs(blog_dir)
+            print(f"已清理blog目录: {blog_dir}")
+
+    except Exception as e:
+        print(f"清理目录时出错: {str(e)}")
+
+# 创建调度器
+scheduler = BackgroundScheduler()
+# 添加定时任务，每天凌晨12:00执行
+scheduler.add_job(cleanup_directories, 'cron', hour=0, minute=0)
+# 添加测试用的定时任务，每分钟执行一次（仅在测试时启用）
+# scheduler.add_job(cleanup_directories, 'interval', minutes=1)
+# 启动调度器
+scheduler.start()
 
 # 启动服务器
 if __name__ == "__main__":
