@@ -307,13 +307,18 @@ class BaseBlogParser(ABC):
         Returns:
             str: CSS样式字符串
         """
-        # 处理微信特殊标签
-        for element in soup.find_all(['div', 'section']):
+        # 预编译正则表达式以提高性能
+        visibility_pattern = re.compile(r'visibility:\s*hidden')
+        opacity_pattern = re.compile(r'opacity:\s*0')
+        
+        # 处理微信特殊标签 - 只处理主要内容区域
+        content_elements = soup.find_all(['div', 'section'], class_=lambda x: x and ('content' in x.lower() or 'article' in x.lower()))
+        for element in content_elements:
             # 移除隐藏属性
             if 'style' in element.attrs:
                 style = element['style']
-                style = re.sub(r'visibility:\s*hidden', 'visibility: visible', style)
-                style = re.sub(r'opacity:\s*0', 'opacity: 1', style)
+                style = visibility_pattern.sub('visibility: visible', style)
+                style = opacity_pattern.sub('opacity: 1', style)
                 element['style'] = style
             
             # 移除微信特殊属性
@@ -321,29 +326,43 @@ class BaseBlogParser(ABC):
                 if attr in element.attrs:
                     del element[attr]
         
-        # 从style标签中提取CSS
-        css_styles = ""
-        for style in soup.find_all('style'):
-            if style.string:
-                # 移除可能导致内容隐藏的样式
-                style_text = style.string
-                style_text = re.sub(r'visibility:\s*hidden', 'visibility: visible', style_text)
-                style_text = re.sub(r'opacity:\s*0', 'opacity: 1', style_text)
-                css_styles += style_text + '\n'
+        css_styles = []
         
-        # 从link标签中提取CSS
+        # 从style标签中提取CSS - 只处理非空的style标签
+        for style in soup.find_all('style', string=True):
+            style_text = style.string
+            # 移除可能导致内容隐藏的样式
+            style_text = visibility_pattern.sub('visibility: visible', style_text)
+            style_text = opacity_pattern.sub('opacity: 1', style_text)
+            css_styles.append(style_text)
+        
+        # 从link标签中提取CSS - 使用线程池并行处理
+        css_urls = []
         for link in soup.find_all('link', rel='stylesheet'):
             if 'href' in link.attrs:
                 css_url = urljoin(base_url, link['href'])
-                try:
-                    css_response = requests.get(css_url)
-                    css_response.raise_for_status()
-                    css_styles += css_response.text + '\n'
-                except:
-                    pass
-
-        return css_styles
-
+                if css_url not in css_urls:  # 避免重复的CSS
+                    css_urls.append(css_url)
+        
+        def fetch_css(url):
+            try:
+                response = requests.get(url, timeout=5)  # 添加超时
+                if response.status_code == 200:
+                    return response.text
+            except:
+                pass
+            return None
+        
+        # 并行获取CSS
+        if css_urls:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+                css_contents = executor.map(fetch_css, css_urls)
+                for content in css_contents:
+                    if content:
+                        css_styles.append(content)
+        
+        return '\n'.join(css_styles)
+    
     def _fetch_css_styles(self, soup, base_url):
         """获取CSS样式
         Args:
