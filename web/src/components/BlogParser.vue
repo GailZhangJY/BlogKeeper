@@ -1,17 +1,17 @@
 <template>
-  <div class="bg-white shadow-lg rounded-lg p-6">
+  <div class="responsive-container">
     <!-- 链接输入区域 -->
-    <div class="mb-6">
-      <div class="flex">
+    <div class="section-spacing">
+      <div class="input-group">
         <input
           v-model="blogUrl"
           type="text"
-          class="flex-1 px-4 py-2 border border-gray-300 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          class="input-field"
           placeholder="请输入博客链接 (支持CSDN、博客园、知乎、掘金、微信公众号)"
         />
         <button
           @click="clearUrl"
-          class="px-4 py-2 text-gray-500 hover:text-gray-700 border-t border-b border-r border-gray-300 rounded-r-lg"
+          class="input-button"
         >
           清空
         </button>
@@ -20,7 +20,7 @@
         <span 
           v-for="platform in supportedPlatforms" 
           :key="platform.name"
-          class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+          class="platform-tag"
         >
           {{ platform.name }}
         </span>
@@ -28,24 +28,26 @@
     </div>
 
     <!-- 格式选择区域 -->
-    <div class="mb-6">
-      <label class="block text-sm font-medium text-gray-700 mb-2">导出格式</label>
-      <div class="flex flex-wrap gap-4">
+    <div class="section-spacing">
+      <label class="responsive-text font-medium text-gray-700 mb-2 block">导出格式</label>
+      <div class="flex flex-wrap gap-2">
         <label 
           v-for="format in formats" 
           :key="format.value"
-          class="relative flex items-center justify-center"
+          class="relative flex items-center justify-center shrink-0"
         >
           <input
             type="checkbox"
             v-model="selectedFormats"
             :value="format.value"
-            class="sr-only peer"
+            class="sr-only"
           />
-          <div class="px-4 py-2 rounded-lg border cursor-pointer 
-                     peer-checked:bg-blue-500 peer-checked:text-white
-                     peer-checked:border-blue-500
-                     hover:bg-gray-50 peer-checked:hover:bg-blue-600">
+          <div 
+            :class="[
+              'format-item whitespace-nowrap',
+              selectedFormats.includes(format.value) ? 'format-item-selected' : ''
+            ]"
+          >
             {{ format.label }}
           </div>
         </label>
@@ -56,8 +58,8 @@
     <button
       @click="parseContent"
       class="w-full bg-blue-500 text-white px-6 py-3 rounded-lg font-medium
-             hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
-             disabled:opacity-50 disabled:cursor-not-allowed"
+             hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500
+             disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
       :disabled="isLoading || !canParse"
     >
       <span v-if="isLoading" class="flex items-center justify-center">
@@ -70,47 +72,45 @@
       <span v-else>开始解析</span>
     </button>
 
-    <!-- 结果显示区域 -->
+    <!-- 解析结果区域 -->
     <div v-if="results.length > 0" class="mt-8">
-      <div class="flex justify-between items-center mb-4">
-        <h2 class="text-lg font-medium text-gray-900">解析结果</h2>
+      <div class="results-header">
+        <h2 class="responsive-heading">解析结果</h2>
         <button
           v-if="results.length > 1"
           @click="downloadAll"
-          class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-500 hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+          class="download-all-button"
         >
-          <svg class="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+          <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
           </svg>
-          打包下载全部
+          下载全部
         </button>
       </div>
       <div class="space-y-4">
-        <div
-          v-for="(result, index) in results"
-          :key="index"
-          class="bg-gray-50 p-4 rounded-lg border border-gray-200 hover:shadow-md transition-shadow"
-        >
-          <div class="flex justify-between items-center">
-            <div class="flex-1">
-              <p class="font-medium truncate">{{ result.title }}</p>
-              <div class="flex items-center text-sm text-gray-500 mt-1 space-x-2">
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100">
-                  {{ result.format }}
-                </span>
-                <span>{{ formatFileSize(result.size) }}</span>
-              </div>
-            </div>
-            <button
-              @click="downloadFile(result)"
-              class="ml-4 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-500 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              <svg class="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-              </svg>
-              下载
-            </button>
+        <div v-for="(result, index) in results" 
+             :key="index"
+             class="results-item">
+          <div class="flex-1 min-w-0">
+            <p class="results-filename">
+              {{ truncateFileName(result.title) }}
+            </p>
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100">
+              {{ result.format }}
+            </span>
+            <p class="mt-1 text-sm text-gray-500">
+              {{ formatFileSize(result.size) }}
+            </p>
           </div>
+          <button
+            @click="() => downloadFile(result)"
+            class="download-button"
+          >
+            <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            下载
+          </button>
         </div>
       </div>
     </div>
@@ -118,8 +118,8 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, computed } from 'vue'
-import { getFileNameFromResponse } from '@/utils/fileUtils';
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { getFileNameFromResponse } from '@/utils/fileUtils'
 import { API_CONFIG } from '@/config'
 
 const apiHost = ref(API_CONFIG.HOST)
@@ -127,6 +127,29 @@ const blogUrl = ref('')
 const isLoading = ref(false)
 const selectedFormats = ref<string[]>(['html'])
 const results = ref<ParseResult[]>([])
+const isTestMode = ref(true)  // 开发测试模式
+
+// 测试数据
+const testResults = [
+  {
+    title: '我去，今天被腾讯游戏装到了-游戏葡萄-微信公众号-2024-12-03',
+    download_url: '#',
+    size: 1024,
+    format: 'html',
+  },
+  {
+    title: '这是一个非常非常非常长的文件名用来测试移动端展示效果',
+    download_url: '#',
+    size: 2048,
+    format: 'pdf',
+  },
+  {
+    title: '正常长度的文件名测试',
+    download_url: '#',
+    size: 512,
+    format: 'md',
+  }
+]
 
 interface Format {
   label: string
@@ -143,6 +166,8 @@ interface ParseResult {
   download_url: string
   size: number
   format: string
+  filename: string
+  originalFilename?: string
 }
 
 const formats: Format[] = [
@@ -174,6 +199,20 @@ const parseContent = async () => {
   
   isLoading.value = true
   try {
+    if (isTestMode.value) {
+      setTimeout(() => {
+        results.value = testResults.map(result => {
+          return { 
+            ...result, 
+            filename: `${result.title}.${result.format}`,
+            originalFilename: `${result.title}.${result.format}`
+          }
+        })
+        isLoading.value = false
+      }, 500)
+      return
+    }
+
     const response = await fetch(`${apiHost.value}/parse`, {
       method: 'POST',
       headers: {
@@ -190,13 +229,41 @@ const parseContent = async () => {
     }
 
     const data = await response.json()
-    results.value = data
+    results.value = data.map((result: Omit<ParseResult, 'filename'>) => ({
+      ...result,
+      filename: `${result.title}.${result.format}`,
+      originalFilename: `${result.title}.${result.format}`
+    }))
   } catch (error) {
     console.error('解析失败:', error)
     alert('解析失败，请稍后重试')
   } finally {
     isLoading.value = false
   }
+}
+
+const isMobile = ref(window.innerWidth <= 768)
+
+onMounted(() => {
+  window.addEventListener('resize', () => {
+    isMobile.value = window.innerWidth <= 768
+  })
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', () => {
+    isMobile.value = window.innerWidth <= 768
+  })
+})
+
+const truncateFileName = (filename: string): string => {
+  const maxLength = isMobile.value ? 20 : 50
+  
+  // 如果文件名长度在限制内，直接返回
+  if (filename.length <= maxLength) return filename
+  
+  // 截断文件名
+  return filename.slice(0, maxLength - 3) + '...'
 }
 
 const formatFileSize = (bytes: number): string => {
@@ -209,105 +276,68 @@ const formatFileSize = (bytes: number): string => {
 
 const downloadFile = async (result: ParseResult) => {
   try {
-    console.log('开始下载文件:', result)
-    const downloadUrl = `${apiHost.value}${result.download_url}`
-    console.log('下载地址:', downloadUrl)
-    
-    const response = await fetch(downloadUrl)
-    console.log('服务器响应状态:', response.status, response.statusText)
-    
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error('服务器错误响应:', {
-        status: response.status,
-        statusText: response.statusText,
-        headers: Object.fromEntries(response.headers.entries()),
-        errorText
-      })
-      throw new Error(`下载失败: ${response.status} ${response.statusText}\n${errorText}`)
-    }
-    
+    const response = await fetch(result.download_url)
     const blob = await response.blob()
-    console.log('文件下载完成，大小:', blob.size, '字节')
-    
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = result.title + '.' + result.format
+    a.download = result.originalFilename || result.filename
     document.body.appendChild(a)
     a.click()
     window.URL.revokeObjectURL(url)
     document.body.removeChild(a)
-    console.log('文件下载成功:', result.title + '.' + result.format)
-  } catch (error: any) {
-    const errorDetails = {
-      message: error.message,
-      stack: error.stack,
-      result: result
-    }
-    console.error('下载出错 - 详细信息:', errorDetails)
-    alert(`下载文件时出错:\n${error.message}\n\n请查看控制台了解详细信息`)
+  } catch (error) {
+    console.error('下载失败:', error)
+    alert('下载失败，请稍后重试')
   }
 }
 
 const downloadAll = async () => {
   try {
-    console.log('开始批量下载文件:', results.value)
     const downloadUrl = `${apiHost.value}/batch-download`
     console.log('批量下载地址:', downloadUrl)
     
-    // 构建下载请求
     const response = await fetch(downloadUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        files: results.value.map(result => ({
-          url: result.download_url,
-          filename: result.title + '.' + result.format
-        }))
-      })
+        results: results.value
+      }),
     })
     
-    console.log('服务器响应状态:', response.status, response.statusText)
-    
     if (!response.ok) {
-      const errorText = await response.text()
-      console.error('服务器错误响应:', {
-        status: response.status,
-        statusText: response.statusText,
-        headers: Object.fromEntries(response.headers.entries()),
-        errorText
-      })
-      throw new Error(`批量下载失败: ${response.status} ${response.statusText}\n${errorText}`)
+      throw new Error(`HTTP error! status: ${response.status}`)
     }
     
     const blob = await response.blob()
-    console.log('打包文件下载完成，大小:', blob.size, '字节')
+    const fileName = getFileNameFromResponse(response) || 'blog_articles.zip'
     
-    const fileName = getFileNameFromResponse(response);
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = fileName || 'download.zip' // 使用解析的文件名，如果没有则使用默认名
+    a.download = fileName
     
-    // 触发下载
     document.body.appendChild(a)
     a.click()
     
-    // 清理
     document.body.removeChild(a)
     window.URL.revokeObjectURL(url)
-    console.log('打包下载成功')
-  } catch (error: any) {
+  } catch (error: unknown) {
     const errorDetails = {
-      message: error.message,
-      stack: error.stack,
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
       results: results.value
     }
     console.error('批量下载出错 - 详细信息:', errorDetails)
-    alert(`批量下载文件时出错:\n${error.message}\n\n请查看控制台了解详细信息`)
+    alert(`批量下载文件时出错:\n${errorDetails.message}\n\n请查看控制台了解详细信息`)
   }
 }
 </script>
+
+<style>
+.download-all-button {
+  @apply inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500;
+}
+</style>

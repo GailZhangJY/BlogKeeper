@@ -1,15 +1,26 @@
+@import './assets/responsive.css';
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* 自定义全局样式 */
 :root {
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
 }
 
+/* 重置body样式 */
 body {
-  margin: 0;
-  min-height: 100vh;
-  background-color: #f3f4f6;
+  @apply bg-gray-50 min-h-screen m-0;
+}
+
+/* 主容器样式 */
+#app {
+  @apply min-h-screen flex flex-col;
+}
+
+/* 导航栏固定样式 */
+.header-fixed {
+  @apply fixed top-0 left-0 right-0 z-50;
 }
