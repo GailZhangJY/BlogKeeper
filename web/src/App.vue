@@ -7,7 +7,7 @@
           <div class="flex items-center">
             <img src="/logo.svg" alt="文捕" class="h-8 w-auto" />
             <span class="ml-2 text-xl font-semibold text-gray-900">文捕</span>
-            <span class="hidden sm:inline-block ml-2 text-sm text-gray-500">博客内容捕手</span>
+            <span class="hidden sm:inline-block ml-2 text-sm text-gray-500">博客内容一键解析下载工具</span>
           </div>
           <nav class="flex space-x-4 sm:space-x-8">
             <a href="/" class="text-gray-900 hover:text-gray-600 px-3 py-2 rounded-md text-sm font-medium">首页</a>

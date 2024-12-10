@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+
+# 站点地图
+Sitemap: https://www.blog-keeper.com/sitemap.xml
