@@ -32,11 +32,11 @@ API_HOST = os.getenv('API_HOST', '0.0.0.0')
 API_PORT = int(os.getenv('API_PORT', '3102'))
 
 # 从环境变量获取 CORS 配置
-CORS_ORIGINS = os.getenv('CORS_ORIGINS', '').split(',')
-logger.info(f"从环境变量读取的 CORS_ORIGINS: {CORS_ORIGINS}")
-# 过滤掉空字符串
-CORS_ORIGINS = [origin.strip() for origin in CORS_ORIGINS if origin.strip()]
-logger.info(f"最终的 CORS_ORIGINS: {CORS_ORIGINS}")
+# CORS_ORIGINS = os.getenv('CORS_ORIGINS', '').split(',')
+# logger.info(f"从环境变量读取的 CORS_ORIGINS: {CORS_ORIGINS}")
+# # 过滤掉空字符串
+# CORS_ORIGINS = [origin.strip() for origin in CORS_ORIGINS if origin.strip()]
+# logger.info(f"最终的 CORS_ORIGINS: {CORS_ORIGINS}")
 
 # 创建FastAPI应用
 app = FastAPI(title="BlogKeeper API")
@@ -44,7 +44,7 @@ app = FastAPI(title="BlogKeeper API")
 # 配置CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=CORS_ORIGINS,  # 使用配置的源
+    allow_origins=["*"],  # 使用配置的源
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],  # 明确指定允许的方法
     allow_headers=["*"],  # 允许所有请求头
