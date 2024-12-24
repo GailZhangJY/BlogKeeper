@@ -221,7 +221,7 @@ const parseContent = async () => {
       body: JSON.stringify({
         url: blogUrl.value,
         formats: selectedFormats.value,
-        fileContent: 'false'
+        fileContent: false
       }),
     })
 
