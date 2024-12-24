@@ -63,8 +63,9 @@ app.mount(DOWNLOAD_DIR, StaticFiles(directory=str(TEMP_DIR)), name="download")
 
 class ParseRequest(BaseModel):
     url: HttpUrl
+    fileContent: bool
     formats: List[str]
-
+    
     @field_validator('formats')
     def validate_formats(cls, v):
         valid_formats = {'html', 'md', 'pdf', 'mhtml'}
@@ -78,6 +79,7 @@ class FileInfo(BaseModel):
     download_url: str
     size: int
     format: str
+    file_content: str
 
 class BatchDownloadFile(BaseModel):
     url: str
@@ -181,6 +183,9 @@ async def parse_blog_api(request: ParseRequest):
         logger.info(f"请求的原始格式: {request.formats}")
         logger.info(f"转换后的格式: {formats}")
 
+        # 是否返回文件内容
+        file_content = request.fileContent
+
         # 准备保存选项
         save_options = {
             'formats': formats
@@ -208,6 +213,9 @@ async def parse_blog_api(request: ParseRequest):
                 file_path = file_path.replace('\\', '/')
                 file_path = file_path.replace(TEMP_PATH, DOWNLOAD_DIR)
                 file_info['download_url'] = file_path
+
+                if not file_content:
+                    file_info['file_content'] = ""
 
                 logger.info(f"处理后的文件信息: {file_info}")
                 files.append(FileInfo(**file_info))

@@ -93,7 +93,7 @@ def save_as_html(title, content, css_styles, file_name, file_path, base_url=None
             f.write(html_template)
             
         logger.info(f"HTML文件已保存: {filepath}")
-        return filepath
+        return { 'file_path': filepath, 'file_content': html_template}
         
     except Exception as e:
         logger.error(f"保存HTML文件时出错: {str(e)}")
@@ -129,7 +129,7 @@ def save_as_markdown(title, content, css_styles, file_name, file_path, base_url=
             f.write(final_content)
             
         logger.info(f"Markdown文件已保存: {filepath}")
-        return filepath
+        return  { 'file_path': filepath, 'file_content': final_content}
         
     except Exception as e:
         logger.error(f"保存Markdown文件时出错: {str(e)}")
@@ -200,14 +200,14 @@ def save_as_pdf(title, content, css_styles, file_name, file_path, base_url=None,
             
             # 6. 删除临时HTML文件
             os.remove(temp_html)
-            return pdf_path
+            return { 'file_path': pdf_path, 'file_content': ""}
             
         except Exception as e:
             logger.error(f"PDF转换失败: {str(e)}")
             # 如果转换失败，尝试直接从HTML字符串转换
             try:
                 pdfkit.from_string(html_content, pdf_path, options=options, configuration=config)
-                return pdf_path
+                return { 'file_path': pdf_path, 'file_content': ""}
             except Exception as e2:
                 logger.error(f"从字符串转换PDF也失败: {str(e2)}")
                 return None
@@ -276,7 +276,7 @@ def save_as_mhtml(title, content, css_styles, file_name, file_path, base_url=Non
             f.write(f'\n--{boundary}--\n')
             
         logger.info(f"MHTML文件已保存: {filepath}")
-        return filepath
+        return  { 'file_path': filepath, 'file_content': ""}
         
     except Exception as e:
         logger.error(f"保存MHTML文件时出错: {str(e)}")

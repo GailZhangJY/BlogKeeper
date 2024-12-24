@@ -60,7 +60,7 @@ class BaseBlogParser(ABC):
         """
         return self.file_list
 
-    def _add_file_to_list(self, file_path, file_name, format_type):
+    def _add_file_to_list(self, file_path, file_name, format_type, file_content):
         """添加文件到文件列表
         Args:
             file_path: 文件路径
@@ -86,7 +86,8 @@ class BaseBlogParser(ABC):
                 "title": title,
                 "download_url": download_url,
                 "size": file_size,
-                "format": format_type
+                "format": format_type,
+                "file_content": file_content
             })
 
     def _extract_element(self, soup, selectors, default='', get_text=True):
@@ -389,7 +390,7 @@ class BaseBlogParser(ABC):
                 platform=self.platform_flag
             )
             if result:
-                self._add_file_to_list(file_path, file_name, format_type)
+                self._add_file_to_list(file_path, file_name, format_type, file_content=result['file_content'])
             return bool(result)
         except Exception as e:
             logger.error(f"保存{format_type}格式失败: {str(e)}")
