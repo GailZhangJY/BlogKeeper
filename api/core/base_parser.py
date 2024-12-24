@@ -86,7 +86,7 @@ class BaseBlogParser(ABC):
                 "title": title,
                 "download_url": download_url,
                 "size": file_size,
-                "format": format_type.replace('markdown', 'md')
+                "format": format_type
             })
 
     def _extract_element(self, soup, selectors, default='', get_text=True):
