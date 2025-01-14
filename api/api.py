@@ -203,7 +203,7 @@ async def parse_blog_api(request: ParseRequest):
         # 获取文件列表
         files = []
         file_list = parser.get_file_list()
-        logger.info(f"原始文件列表: {file_list}")
+        #logger.info(f"原始文件列表: {file_list}")
 
         # 只返回请求的格式
         for file_info in file_list:

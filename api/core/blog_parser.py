@@ -11,6 +11,8 @@ from platform_api.juejin import JuejinParser
 from platform_api.jianshu import JianshuParser
 from platform_api.wechat import WeChatParser
 from platform_api.yuque import YuqueParser
+from platform_api.segmentfault import SegmentfaultParser
+
 from .log_utils import logger
 
 class BlogParser:
@@ -19,11 +21,12 @@ class BlogParser:
         self.parsers = {
             'cnblogs.com': CNBlogParser(),
             'blog.csdn.net': CSDNParser(),
-            'zhuanlan.zhihu.com': ZhihuParser(),
+            #'zhuanlan.zhihu.com': ZhihuParser(),
             'juejin.cn': JuejinParser(),
             'jianshu.com': JianshuParser(),
             'mp.weixin.qq.com': WeChatParser(),
             #"yuque.com": YuqueParser(),
+            'segmentfault.com': SegmentfaultParser()
         }
 
     def get_parser(self, url: str):

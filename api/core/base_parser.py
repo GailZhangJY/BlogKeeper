@@ -75,9 +75,9 @@ class BaseBlogParser(ABC):
         # 获取文件信息
         file_size = os.path.getsize(download_url)
         
-        # 清理标题，移除平台名和日期信息
+        # 清理标题，移除文件扩展名
         logger.info("添加文件到文件列表：" + file_name)
-        title = file_name.split('.')[0]
+        title = os.path.splitext(file_name)[0]
         logger.info("添加文件到文件列表：" + title)
         
         # 添加到文件列表

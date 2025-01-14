@@ -21,7 +21,7 @@ class JuejinParser(BaseBlogParser):
                 ('h1', {'class': 'article-title'}),
             ],
             'content': [
-                ('div', {'class': 'article-viewer markdown-body cache result'}),
+                ('div', {'id': 'article-root'}),
             ],
             'author': [
                 ('span', {'class': 'name'}),

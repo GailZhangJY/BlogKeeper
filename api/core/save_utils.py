@@ -441,6 +441,7 @@ def process_images_in_content(content, base_url, save_dir):
     
     def process_image_wrapper(img):
         success, old_src, new_src, process_time = process_single_image(img, base_url, images_dir)
+        logger.info(f"图片处理结果: {success}, 原始URL: {old_src}, 新URL: {new_src}, 处理时间: {process_time:.2f}秒")
         processing_times.append(process_time)
         if success and new_src:
             img['src'] = new_src
@@ -454,15 +455,21 @@ def process_images_in_content(content, base_url, save_dir):
         list(executor.map(process_image_wrapper, images))
     
     total_time = time.time() - start_time
-    avg_time = sum(processing_times) / len(processing_times) if processing_times else 0
-    max_time = max(processing_times) if processing_times else 0
+    if processing_times:
+        avg_time = sum(processing_times) / len(processing_times)
+        max_time = max(processing_times)
+        parallel_efficiency = sum(processing_times)/total_time if total_time > 0 else 0
+    else:
+        avg_time = 0
+        max_time = 0
+        parallel_efficiency = 0
     
     logger.info(f"=== 图片处理完成 ===")
     logger.info(f"总图片数: {len(images)}")
     logger.info(f"总处理时间: {total_time:.2f}秒")
     logger.info(f"平均处理时间: {avg_time:.2f}秒/图片")
     logger.info(f"最长处理时间: {max_time:.2f}秒")
-    logger.info(f"并行处理效率提升: {(sum(processing_times)/total_time):.1f}倍")
+    logger.info(f"并行处理效率提升: {parallel_efficiency:.1f}倍")
     
     return str(soup)
 

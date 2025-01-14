@@ -7,7 +7,7 @@
           v-model="blogUrl"
           type="text"
           class="input-field"
-          placeholder="请输入博客链接 (支持CSDN、博客园、知乎、掘金、微信公众号)"
+          placeholder="请输入文章博客链接"
         />
         <button
           @click="clearUrl"
@@ -178,11 +178,13 @@ const formats: Format[] = [
 ]
 
 const supportedPlatforms: Platform[] = [
+  { name: '微信公众号', domain: 'weixin.qq.com' },
   { name: 'CSDN', domain: 'csdn.net' },
   { name: '博客园', domain: 'cnblogs.com' },
-  { name: '知乎', domain: 'zhihu.com' },
+  { name: '简书', domain: 'jianshu.com' },
+  //{ name: '知乎', domain: 'zhihu.com' },
   { name: '掘金', domain: 'juejin.cn' },
-  { name: '微信公众号', domain: 'weixin.qq.com' }
+  { name: '思否', domain: 'segmentfault.com' }
 ]
 
 const canParse = computed(() => {
@@ -192,6 +194,7 @@ const canParse = computed(() => {
 const clearUrl = () => {
   blogUrl.value = ''
   results.value = []  // 清除解析结果
+  selectedFormats.value = ['html']
 }
 
 const parseContent = async () => {
