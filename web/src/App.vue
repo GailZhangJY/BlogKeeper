@@ -1,18 +1,32 @@
 <template>
   <div class="min-h-screen bg-gray-50">
     <!-- 顶部导航栏 -->
-    <header class="bg-white shadow-sm sticky top-0 z-50">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between items-center h-16">
+    <header class="bg-white shadow">
+      <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between items-center py-4">
+          <!-- Logo和标题 -->
           <div class="flex items-center">
             <img src="/logo.svg" alt="文捕" class="h-8 w-auto" />
             <span class="ml-2 text-xl font-semibold text-gray-900">文捕</span>
             <span class="hidden sm:inline-block ml-2 text-sm text-gray-500">博客内容一键解析下载工具</span>
           </div>
-          <nav class="flex space-x-4 sm:space-x-8">
-            <a href="/" class="text-gray-900 hover:text-gray-600 px-3 py-2 rounded-md text-sm font-medium">首页</a>
-            <a href="/help" class="text-gray-500 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">使用教程</a>
-            <a href="/contact" class="text-gray-500 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">联系我们</a>
+          
+          <!-- 导航链接 -->
+          <nav class="flex space-x-4">
+            <router-link 
+              to="/" 
+              class="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
+              active-class="text-green-600 font-bold"
+            >
+              首页
+            </router-link>
+            <router-link 
+              to="/contact" 
+              class="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
+              active-class="text-green-600 font-bold"
+            >
+              联系我们
+            </router-link>
           </nav>
         </div>
       </div>
@@ -20,11 +34,11 @@
 
     <!-- 主要内容区域 -->
     <main class="flex-1 container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-      <BlogParser />
+      <router-view></router-view>
     </main>
   </div>
 </template>
 
 <script setup lang="ts">
-import BlogParser from './components/BlogParser.vue'
+// 不再需要直接导入 BlogParser，因为它会通过路由加载
 </script>
