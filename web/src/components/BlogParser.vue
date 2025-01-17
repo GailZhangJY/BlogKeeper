@@ -17,13 +17,16 @@
         </button>
       </div>
       <div class="mt-2 flex flex-wrap gap-2">
-        <span 
+        <a 
           v-for="platform in supportedPlatforms" 
           :key="platform.name"
           class="platform-tag"
+          :href="platform.domain"
+          target="_blank"
+          rel="noopener noreferrer"
         >
           {{ platform.name }}
-        </span>
+      </a>
       </div>
     </div>
 
@@ -178,14 +181,17 @@ const formats: Format[] = [
 ]
 
 const supportedPlatforms: Platform[] = [
-  { name: '微信公众号', domain: 'weixin.qq.com' },
-  { name: 'CSDN', domain: 'csdn.net' },
-  { name: '博客园', domain: 'cnblogs.com' },
-  { name: '简书', domain: 'jianshu.com' },
+  { name: '微信公众号', domain: 'https://mp.weixin.qq.com/s/bdqcwi0CgkoIvUiKsGBFog' },
+  { name: 'CSDN', domain: 'https://blog.csdn.net' },
+  { name: '博客园', domain: 'https://www.cnblogs.com' },
+  { name: '简书', domain: 'https://www.jianshu.com' },
   //{ name: '知乎', domain: 'zhihu.com' },
-  { name: '掘金', domain: 'juejin.cn' },
-  { name: '思否', domain: 'segmentfault.com' },
-  { name: '阮一峰的网络日志', domain: 'ruanyifeng.com' }
+  { name: '掘金', domain: 'https://juejin.cn' },
+  { name: '思否', domain: 'https://segmentfault.com/blogs' },
+  { name: '阮一峰的网络日志', domain: 'https://ruanyifeng.com/blog/' },
+  { name: '腾讯云开发者社区', domain: 'https://cloud.tencent.com/developer' },
+  //{ name: '阿里云开发者社区', domain: 'https://developer.aliyun.com' },
+  //{ name: '华为云开发者社区', domain: 'https://bbs.huaweicloud.com/' },
 ]
 
 const canParse = computed(() => {

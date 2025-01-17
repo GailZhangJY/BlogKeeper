@@ -13,6 +13,9 @@ from platform_api.wechat import WeChatParser
 from platform_api.yuque import YuqueParser
 from platform_api.segmentfault import SegmentfaultParser
 from platform_api.ruanyifeng import RuanYiFengParser
+from platform_api.tencentcloud import TencentCloudParser
+from platform_api.huaweicloud import HuaWeiCloudParser
+from platform_api.aliyundeveloper import AliyunDeveloperParser
 
 from .log_utils import logger
 
@@ -28,7 +31,10 @@ class BlogParser:
             'mp.weixin.qq.com': WeChatParser(),
             #"yuque.com": YuqueParser(),
             'segmentfault.com': SegmentfaultParser(),
-            "ruanyifeng.com": RuanYiFengParser()
+            "ruanyifeng.com": RuanYiFengParser(),
+            'cloud.tencent.com': TencentCloudParser(),
+            'bbs.huaweicloud.com': HuaWeiCloudParser(),
+            'developer.aliyun.com': AliyunDeveloperParser(),
         }
 
     def get_parser(self, url: str):
