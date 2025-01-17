@@ -518,9 +518,41 @@ pull_code() {
     cd "$SCRIPT_DIR/BlogKeeper"
 }
 
+# 备份日志
+backup_logs() {
+    log_info "备份容器日志..."
+    
+    # 创建日志目录（如果不存在）
+    local log_dir="$SCRIPT_DIR/BlogKeeper/logs"
+    mkdir -p "$log_dir"
+    
+    # 获取当前时间戳
+    local timestamp=$(date '+%Y%m%d_%H%M%S')
+    
+    # 备份 API 容器日志
+    local api_log_file="$log_dir/api_${timestamp}.log"
+    if docker ps -q -f name=blogkeeper-api-1 >/dev/null; then
+        log_info "备份 API 容器日志到: $api_log_file"
+        docker logs blogkeeper-api-1 > "$api_log_file" 2>&1
+    else
+        log_warn "API 容器未运行，跳过日志备份"
+    fi
+    
+    # 压缩一周前的日志文件
+    find "$log_dir" -name "*.log" -type f -mtime +7 -exec gzip {} \;
+    
+    # 删除超过30天的压缩日志
+    find "$log_dir" -name "*.log.gz" -type f -mtime +30 -delete
+    
+    log_info "日志备份完成"
+}
+
 # 启动服务
 start_services() {
     log_info "启动服务..."
+    
+    # 备份现有容器的日志（如果存在）
+    backup_logs
     
     # 检查前端构建目录
     if [ ! -d "web/dist" ]; then
