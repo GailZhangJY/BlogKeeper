@@ -177,6 +177,9 @@ async def parse_blog_api(request: ParseRequest):
             'pdf': 'pdf',
             'mhtml': 'mhtml'
         }
+           
+        # 请求地址
+        logger.info(f"请求的原始地址: {request.url}")
 
         # 转换格式名称
         formats = [format_mapping.get(fmt, fmt) for fmt in request.formats]
