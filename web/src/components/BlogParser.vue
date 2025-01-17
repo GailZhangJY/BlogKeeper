@@ -184,7 +184,8 @@ const supportedPlatforms: Platform[] = [
   { name: '简书', domain: 'jianshu.com' },
   //{ name: '知乎', domain: 'zhihu.com' },
   { name: '掘金', domain: 'juejin.cn' },
-  { name: '思否', domain: 'segmentfault.com' }
+  { name: '思否', domain: 'segmentfault.com' },
+  { name: '阮一峰的网络日志', domain: 'ruanyifeng.com' }
 ]
 
 const canParse = computed(() => {

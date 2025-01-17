@@ -12,6 +12,7 @@ from platform_api.jianshu import JianshuParser
 from platform_api.wechat import WeChatParser
 from platform_api.yuque import YuqueParser
 from platform_api.segmentfault import SegmentfaultParser
+from platform_api.ruanyifeng import RuanYiFengParser
 
 from .log_utils import logger
 
@@ -26,7 +27,8 @@ class BlogParser:
             'jianshu.com': JianshuParser(),
             'mp.weixin.qq.com': WeChatParser(),
             #"yuque.com": YuqueParser(),
-            'segmentfault.com': SegmentfaultParser()
+            'segmentfault.com': SegmentfaultParser(),
+            "ruanyifeng.com": RuanYiFengParser()
         }
 
     def get_parser(self, url: str):
