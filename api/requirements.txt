@@ -18,3 +18,4 @@ aiofiles==23.2.1
 pdfkit==1.0.0
 colorama==0.4.6
 APScheduler==3.11.0
+Pillow==10.1.0

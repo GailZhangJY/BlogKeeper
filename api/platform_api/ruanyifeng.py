@@ -7,28 +7,32 @@ import os
 from datetime import datetime
 from core.base_parser import BaseBlogParser
 from core.log_utils import logger
+import time
+import random
 
 class RuanYiFengParser(BaseBlogParser):
     def __init__(self):
         super().__init__()
         self.platform_name = "阮一峰"
         self.platform_flag = "ruanyifeng"
-
+        
         # 更新请求头，模拟真实浏览器访问
         self._headers.update({
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
             'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
             'Accept-Encoding': 'gzip, deflate, br',
             'Connection': 'keep-alive',
-            'Cache-Control': 'max-age=0',
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache',
             'Sec-Ch-Ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
             'Sec-Ch-Ua-Mobile': '?0',
             'Sec-Ch-Ua-Platform': '"Windows"',
             'Sec-Fetch-Dest': 'document',
             'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-Site': 'none',
+            'Sec-Fetch-Site': 'same-origin',
             'Sec-Fetch-User': '?1',
             'Upgrade-Insecure-Requests': '1',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             'DNT': '1'
         })
 
@@ -48,17 +52,48 @@ class RuanYiFengParser(BaseBlogParser):
             ],
         })
 
-    def fetch_html(self, url: str) -> str:
-        """重写获取页面HTML内容方法，确保正确的编码处理
-        Args:
-            url: 页面URL
-        Returns:
-            str: HTML内容
-        """
+    def _init_session(self):
+        """初始化会话，访问主页获取必要的cookies"""
         try:
+            # 访问主页
+            main_url = 'https://www.ruanyifeng.com/'
+            self._headers['Referer'] = 'https://www.google.com/'
+            response = self._session.get(main_url, headers=self._headers, timeout=30)
+            response.raise_for_status()
+            
+            # 随机延迟
+            time.sleep(random.uniform(1, 3))
+            
+            # 访问博客首页
+            blog_url = 'https://www.ruanyifeng.com/blog/'
+            self._headers['Referer'] = main_url
+            response = self._session.get(blog_url, headers=self._headers, timeout=30)
+            response.raise_for_status()
+            
+            logger.info("成功初始化会话和cookies")
+            return True
+        except Exception as e:
+            logger.error(f"初始化会话失败: {str(e)}")
+            return False
+
+    def fetch_html(self, url: str) -> str:
+        """重写获取页面HTML内容方法，确保正确的编码处理"""
+        try:
+            # 初始化会话
+            if not self._init_session():
+                return None
+                
+            # 设置文章页面的 Referer 为博客首页
+            self._headers['Referer'] = 'https://www.ruanyifeng.com/blog/'
+            
+            # 添加随机延迟，避免频繁请求
+            time.sleep(random.uniform(2, 4))
+            
+            # 打印当前的cookies
+            logger.info(f"Current cookies: {dict(self._session.cookies)}")
+            
             response = self._session.get(url, headers=self._headers, timeout=30)
             response.raise_for_status()
-            # 设置正确的编码
             response.encoding = 'utf-8'
             self.base_html = response.text
             return self.base_html

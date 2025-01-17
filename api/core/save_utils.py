@@ -18,10 +18,12 @@ import pdfkit
 import random
 import string
 import quopri
+import uuid
+import io
+from PIL import Image
 from urllib.parse import urljoin, urlparse
 from bs4 import BeautifulSoup
 from datetime import datetime
-from io import BytesIO
 from .log_utils import logger
 
 def get_save_path(file_name, file_path):
