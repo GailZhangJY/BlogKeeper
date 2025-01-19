@@ -21,6 +21,20 @@
               首页
             </router-link>
             <router-link 
+              to="/guide" 
+              class="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
+              active-class="text-green-600 font-bold"
+            >
+              使用说明
+            </router-link>
+            <router-link 
+              to="/changelog" 
+              class="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
+              active-class="text-green-600 font-bold"
+            >
+              更新日志
+            </router-link>
+            <router-link 
               to="/contact" 
               class="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
               active-class="text-green-600 font-bold"
