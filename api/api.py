@@ -237,8 +237,7 @@ async def parse_blog_api(request: Request, parse_request: ParseRequest):
         logger.error(f"博客解析失败: {e.message}")
         raise e.to_http_exception()
     except Exception as e:
-        logger.error(f"未预期的错误: {str(e)}")
-        raise ServerError(str(e)).to_http_exception()
+        raise ParseError(message="未知错误").to_http_exception()
 
 # 定义清理函数
 def cleanup_directories():
