@@ -16,7 +16,7 @@ from platform_api.ruanyifeng import RuanYiFengParser
 from platform_api.tencentcloud import TencentCloudParser
 from platform_api.huaweicloud import HuaWeiCloudParser
 from platform_api.aliyundeveloper import AliyunDeveloperParser
-
+from errors import PlatformError, ParseError
 from .log_utils import logger
 
 class BlogParser:
@@ -26,15 +26,15 @@ class BlogParser:
             'cnblogs.com': CNBlogParser(),
             'blog.csdn.net': CSDNParser(),
             #'zhuanlan.zhihu.com': ZhihuParser(),
-            'juejin.cn': JuejinParser(),
+            #'juejin.cn': JuejinParser(),
             'jianshu.com': JianshuParser(),
             'mp.weixin.qq.com': WeChatParser(),
             #"yuque.com": YuqueParser(),
             'segmentfault.com': SegmentfaultParser(),
             "ruanyifeng.com": RuanYiFengParser(),
             'cloud.tencent.com': TencentCloudParser(),
-            'bbs.huaweicloud.com': HuaWeiCloudParser(),
-            'developer.aliyun.com': AliyunDeveloperParser(),
+            #'bbs.huaweicloud.com': HuaWeiCloudParser(),
+            #'developer.aliyun.com': AliyunDeveloperParser(),
         }
 
     def get_parser(self, url: str):
@@ -43,14 +43,16 @@ class BlogParser:
             url: 博客文章URL
         Returns:
             Parser: 对应的解析器实例
+        Raises:
+            PlatformError: 当域名不受支持时抛出
         """
         domain = urlparse(url).netloc
         for key, parser in self.parsers.items():
             if key in domain:
                 logger.info(f"使用 {parser.platform_name} 解析器")
                 return parser
-        logger.error(f"不支持的域名: {domain}")
-        return None
+        logger.error(f"不支持的域名:{domain}")
+        raise Exception(f"不支持的域名：{domain}")
 
     def parse(self, url: str, output_dir: str = None, save_options: dict = None) -> bool:
         """解析博客文章
@@ -61,14 +63,27 @@ class BlogParser:
         Returns:
             bool: 是否成功
         """
-        self.base_parser = self.get_parser(url)
-        if not self.base_parser:
-            return False
-            
-        return self.base_parser.parse_blog(url, output_dir, save_options)
+        try:
+            self.base_parser = self.get_parser(url)
+        except Exception as e:
+            domain = urlparse(url).netloc
+            supported_platforms = [parser.platform_name for parser in self.parsers.values()]
+            raise PlatformError(
+                domain=domain,
+                supported_platforms=supported_platforms
+            )
+
+        try:
+            success = self.base_parser.parse_blog(url, output_dir, save_options)
+            return success
+        except Exception as e:
+            raise ParseError(str(e))
         
     def get_file_list(self):
-        return self.base_parser.get_file_list()
+        files = self.base_parser.get_file_list()
+        if not files:
+            raise ParseError("博客解析失败").to_http_exception()
+        return files
 
 # 全局便捷函数
 def parse_blog(url: str, save_options: dict = None, output_dir: str = None) -> bool:

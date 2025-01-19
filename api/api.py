@@ -7,7 +7,6 @@ from typing import List
 from pathlib import Path
 import uvicorn
 from fastapi.middleware.cors import CORSMiddleware
-import tempfile
 import os
 from dotenv import load_dotenv
 import zipfile
@@ -20,9 +19,11 @@ from datetime import datetime
 from urllib.parse import quote
 import os
 import shutil
-from datetime import datetime, timedelta
+from datetime import datetime
 from apscheduler.schedulers.background import BackgroundScheduler
 import time
+from errors import BlogKeeperError, ServerError, ParseError
+
 
 # 加载环境变量
 load_dotenv()
@@ -163,11 +164,11 @@ async def batch_download(request: Request, body: BatchDownloadRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/parse", response_model=List[FileInfo])
-async def parse_blog_api(request: ParseRequest):
+async def parse_blog_api(request: Request, parse_request: ParseRequest):
     start_time = time.time()
     try:
         # 创建输出目录
-        output_dir = TEMP_DIR / str(hash(str(request.url)))
+        output_dir = TEMP_DIR / str(hash(str(parse_request.url)))
         output_dir.mkdir(exist_ok=True)
 
         # 格式映射
@@ -178,16 +179,19 @@ async def parse_blog_api(request: ParseRequest):
             'mhtml': 'mhtml'
         }
            
-        # 请求地址
-        logger.info(f"请求的原始地址: {request.url}")
+        # 请求信息
+        client_host = request.client.host if request.client else "unknown"
+        logger.info(f"请求的时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        logger.info(f"请求的IP地址: {client_host}")
+        logger.info(f"请求的原始地址: {parse_request.url}")
 
         # 转换格式名称
-        formats = [format_mapping.get(fmt, fmt) for fmt in request.formats]
-        logger.info(f"请求的原始格式: {request.formats}")
+        formats = [format_mapping.get(fmt, fmt) for fmt in parse_request.formats]
+        logger.info(f"请求的原始格式: {parse_request.formats}")
         logger.info(f"转换后的格式: {formats}")
 
         # 是否返回文件内容
-        file_content = request.fileContent
+        file_content = parse_request.fileContent
 
         # 准备保存选项
         save_options = {
@@ -197,16 +201,13 @@ async def parse_blog_api(request: ParseRequest):
         # 创建解析器并解析博客
         parser = BlogParser()
         parse_start = time.time()
-        success = parser.parse(str(request.url), str(output_dir), save_options)
+        success = parser.parse(str(parse_request.url), str(output_dir), save_options)
         parse_time = time.time() - parse_start
-
-        if not success:
-            raise HTTPException(status_code=500, detail="博客解析失败")
+        logger.info(f"博客解析状态: {success}")
 
         # 获取文件列表
         files = []
         file_list = parser.get_file_list()
-        #logger.info(f"原始文件列表: {file_list}")
 
         # 只返回请求的格式
         for file_info in file_list:
@@ -228,16 +229,16 @@ async def parse_blog_api(request: ParseRequest):
         logger.info("\n=== 博客解析性能统计 ===")
         logger.info(f"总处理时间: {total_time:.2f}秒")
         logger.info(f"内容解析时间: {parse_time:.2f}秒")
-
         logger.info(f"最终返回的文件列表: {files}")
-        if not files:
-            raise HTTPException(status_code=500, detail="未生成任何文件")
-            
+
         return files
 
+    except BlogKeeperError as e:
+        logger.error(f"博客解析失败: {e.message}")
+        raise e.to_http_exception()
     except Exception as e:
-        logger.error(f"解析博客时出错: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"未预期的错误: {str(e)}")
+        raise ServerError(str(e)).to_http_exception()
 
 # 定义清理函数
 def cleanup_directories():

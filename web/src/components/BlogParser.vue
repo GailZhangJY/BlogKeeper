@@ -1,5 +1,6 @@
 <template>
   <div class="responsive-container">
+    <Toast ref="toastRef" />
     <!-- 链接输入区域 -->
     <div class="section-spacing">
       <div class="input-group">
@@ -124,6 +125,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { getFileNameFromResponse } from '@/utils/fileUtils'
 import { API_CONFIG } from '@/config'
+import Toast from './Toast.vue'
 
 const apiHost = ref(API_CONFIG.HOST)
 const blogUrl = ref('')
@@ -131,6 +133,7 @@ const isLoading = ref(false)
 const selectedFormats = ref<string[]>(['html'])
 const results = ref<ParseResult[]>([])
 const isTestMode = ref(false)  // 开发测试模式
+const toastRef = ref<InstanceType<typeof Toast> | null>(null)
 
 // 测试数据
 const testResults = [
@@ -173,6 +176,15 @@ interface ParseResult {
   originalFilename?: string
 }
 
+interface ErrorResponse {
+  detail: {
+    code: number;
+    type: string;
+    message: string;
+    suggestion?: string;
+  };
+}
+
 const formats: Format[] = [
   { label: 'HTML', value: 'html' },
   { label: 'Markdown', value: 'md' },
@@ -186,7 +198,7 @@ const supportedPlatforms: Platform[] = [
   { name: '博客园', domain: 'https://www.cnblogs.com' },
   { name: '简书', domain: 'https://www.jianshu.com' },
   //{ name: '知乎', domain: 'zhihu.com' },
-  { name: '掘金', domain: 'https://juejin.cn' },
+  //{ name: '掘金', domain: 'https://juejin.cn' },
   { name: '思否', domain: 'https://segmentfault.com/blogs' },
   { name: '阮一峰的网络日志', domain: 'https://ruanyifeng.com/blog/' },
   { name: '腾讯云开发者社区', domain: 'https://cloud.tencent.com/developer' },
@@ -235,19 +247,31 @@ const parseContent = async () => {
       }),
     })
 
+    const data = await response.json()
+
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
+      const error = data as ErrorResponse
+      let errorMessage = error.detail.message
+      
+      // 如果有建议信息，添加到错误信息中
+      if (error.detail.suggestion) {
+        errorMessage += `\n${error.detail.suggestion}`
+      }
+
+      toastRef.value?.show(errorMessage, 'error', 5000)
+      throw new Error(errorMessage)
     }
 
-    const data = await response.json()
     results.value = data.map((result: Omit<ParseResult, 'filename'>) => ({
       ...result,
       filename: `${result.title}.${result.format}`,
       originalFilename: `${result.title}.${result.format}`
     }))
-  } catch (error) {
+
+    toastRef.value?.show('解析成功', 'success', 2000)
+  } catch (error: any) {
     console.error('解析失败:', error)
-    alert('解析失败，请稍后重试')
+    toastRef.value?.show(error.message || '解析失败，请稍后重试', 'error', 3000)
   } finally {
     isLoading.value = false
   }
@@ -298,9 +322,10 @@ const downloadFile = async (result: ParseResult) => {
     a.click()
     window.URL.revokeObjectURL(url)
     document.body.removeChild(a)
+    toastRef.value?.show('下载成功', 'success', 1000)
   } catch (error) {
     console.error('下载失败:', error)
-    alert('下载失败，请稍后重试')
+    toastRef.value?.show('下载失败，请稍后重试', 'error', 1000)
   }
 }
 
@@ -339,6 +364,7 @@ const downloadAll = async () => {
     
     document.body.removeChild(a)
     window.URL.revokeObjectURL(url)
+    toastRef.value?.show('批量下载成功', 'success', 1000)
   } catch (error: unknown) {
     const errorDetails = {
       message: error instanceof Error ? error.message : String(error),
@@ -346,7 +372,7 @@ const downloadAll = async () => {
       results: results.value
     }
     console.error('批量下载出错 - 详细信息:', errorDetails)
-    alert(`批量下载文件时出错:\n${errorDetails.message}\n\n请查看控制台了解详细信息`)
+    toastRef.value?.show(`批量下载文件时出错:\n${errorDetails.message}\n\n请查看控制台了解详细信息`, 'error', 1000)
   }
 }
 </script>
