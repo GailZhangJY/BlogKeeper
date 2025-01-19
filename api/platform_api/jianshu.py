@@ -22,14 +22,11 @@ class JianshuParser(BaseBlogParser):
                 ('article', {'class': '_2rhmJa'}),  # 文章内容
             ],
             'author': [
-                #('a', {'class_': '_1OhGeD'}),  # 作者名
-                ('span ', {'class': '_22gUMi'}),  # 作者名
+                ('span', {'class': '_22gUMi'}),  # 作者名
+                ('a', {'class': '_1OhGeD'}),  # 作者名
             ],
             'date': [
                 ('time', {}),  # 发布时间
             ],
-            'tag': [
-                ('div', {'class': '_2Nttfz'}),  # 文章标签
-            ]
         })
 
