@@ -23,7 +23,7 @@ from datetime import datetime
 from apscheduler.schedulers.background import BackgroundScheduler
 import time
 from errors import BlogKeeperError, ServerError, ParseError
-
+from datetime import datetime, timezone, timedelta
 
 # 加载环境变量
 load_dotenv()
@@ -100,6 +100,13 @@ class BatchDownloadRequest(BaseModel):
         if not v:
             raise ValueError('files list cannot be empty')
         return v
+
+def get_beijing_time():
+    """获取北京时间"""
+    utc_now = datetime.now(timezone.utc)
+    beijing_tz = timezone(timedelta(hours=8))
+    beijing_time = utc_now.astimezone(beijing_tz)
+    return beijing_time
 
 @app.post("/batch-download")
 async def batch_download(request: Request, body: BatchDownloadRequest):
@@ -181,7 +188,7 @@ async def parse_blog_api(request: Request, parse_request: ParseRequest):
            
         # 请求信息
         client_host = request.client.host if request.client else "unknown"
-        logger.info(f"请求的时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        logger.info(f"请求的时间: {get_beijing_time().strftime('%Y-%m-%d %H:%M:%S')}")
         logger.info(f"请求的IP地址: {client_host}")
         logger.info(f"请求的原始地址: {parse_request.url}")
 
@@ -243,7 +250,7 @@ async def parse_blog_api(request: Request, parse_request: ParseRequest):
 def cleanup_directories():
     try:
         # 获取当前时间
-        now = datetime.now()
+        now = get_beijing_time()
         print(f"开始清理目录... {now}")
 
         # 清理temp目录
