@@ -8,7 +8,7 @@
         <!-- Twitter -->
         <div class="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-6 flex flex-col items-center justify-between h-50">
           <div class="flex items-center justify-center space-x-3">
-            <i class="fab fa-twitter text-3xl text-blue-400"></i>
+            <img src="/twitter.svg" alt="Twitter" class="h-6 w-6" />
             <h3 class="text-lg font-medium text-gray-900">Twitter</h3>
           </div>
           <a 
@@ -23,7 +23,7 @@
         <!-- Email -->
         <div class="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-6 flex flex-col items-center justify-between h-50">
           <div class="flex items-center justify-center space-x-3">
-            <i class="fas fa-envelope text-3xl text-gray-600"></i>
+            <img src="/email.png" alt="电子邮箱" class="h-7 w-7" />
             <h3 class="text-lg font-medium text-gray-900">电子邮箱</h3>
           </div>
           <a 
@@ -37,7 +37,7 @@
         <!-- WeChat -->
         <div class="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-6 flex flex-col items-center justify-between h-50">
           <div class="flex items-center justify-center space-x-3">
-            <i class="fab fa-weixin text-3xl text-green-500"></i>
+            <img src="/wechat.svg" alt="微信公众号" class="h-7 w-7" />
             <h3 class="text-lg font-medium text-gray-900">微信公众号</h3>
           </div>
           <div class="text-center">
@@ -76,7 +76,3 @@ import { ref } from 'vue'
 
 const showQRCode = ref(false)
 </script>
-
-<style>
-@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css');
-</style>
