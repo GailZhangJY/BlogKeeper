@@ -6,7 +6,15 @@
         <div class="flex justify-between items-center py-4">
           <!-- Logo和标题 -->
           <div class="flex items-center">
-            <img src="/logo.svg" alt="文捕" class="h-8 w-auto" />
+            <img 
+              src="/logo.svg" 
+              alt="文捕" 
+              class="h-8 w-auto" 
+              width="32" 
+              height="32"
+              loading="eager"
+              fetchpriority="high"
+            />
             <span class="ml-2 text-xl font-semibold text-gray-900">文捕</span>
             <span class="hidden sm:inline-block ml-2 text-sm text-gray-500">博客内容一键解析下载工具</span>
           </div>

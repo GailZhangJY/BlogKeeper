@@ -121,19 +121,48 @@
   </div>
 </template>
 
-<script lang="ts" setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+<script setup lang="ts">
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { useDebounce } from '@vueuse/core'
 import { getFileNameFromResponse } from '@/utils/fileUtils'
 import { API_CONFIG } from '@/config'
 import Toast from './Toast.vue'
 
 const apiHost = ref(API_CONFIG.HOST)
 const blogUrl = ref('')
-const isLoading = ref(false)
-const selectedFormats = ref<string[]>(['html'])
-const results = ref<ParseResult[]>([])
-const isTestMode = ref(false)  // 开发测试模式
-const toastRef = ref<InstanceType<typeof Toast> | null>(null)
+const debouncedBlogUrl = useDebounce(blogUrl, 300)
+const urlValidationCache = new Map()
+const isUrlValid = ref(false)
+
+// 异步验证 URL
+const validateUrl = async (url: string) => {
+  if (!url) return false
+  if (urlValidationCache.has(url)) {
+    return urlValidationCache.get(url)
+  }
+  
+  try {
+    const urlObj = new URL(url)
+    const isValid = supportedPlatforms.some(platform => 
+      url.includes(platform.domain)
+    )
+    urlValidationCache.set(url, isValid)
+    return isValid
+  } catch {
+    urlValidationCache.set(url, false)
+    return false
+  }
+}
+
+// 监听 URL 变化并更新验证状态
+watch(debouncedBlogUrl, async (newUrl) => {
+  isUrlValid.value = await validateUrl(newUrl)
+}, { immediate: true })
+
+// 使用同步计算属性
+const canParse = computed(() => {
+  return blogUrl.value.trim() !== '' && selectedFormats.value.length > 0 && isUrlValid.value
+})
 
 // 测试数据
 const testResults = [
@@ -206,12 +235,16 @@ const supportedPlatforms: Platform[] = [
   //{ name: '华为云开发者社区', domain: 'https://bbs.huaweicloud.com/' },
 ]
 
-const canParse = computed(() => {
-  return blogUrl.value.trim() !== '' && selectedFormats.value.length > 0
-})
+const selectedFormats = ref<string[]>(['html'])
+const results = ref<ParseResult[]>([])
+const isTestMode = ref(false)  // 开发测试模式
+const toastRef = ref<InstanceType<typeof Toast> | null>(null)
+const isLoading = ref(false)
 
 const clearUrl = () => {
   blogUrl.value = ''
+  urlValidationCache.clear()
+  isUrlValid.value = false
   results.value = []  // 清除解析结果
   selectedFormats.value = ['html']
 }
