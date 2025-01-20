@@ -142,10 +142,10 @@ const validateUrl = async (url: string) => {
   }
   
   try {
-    const urlObj = new URL(url)
-    const isValid = supportedPlatforms.some(platform => 
-      url.includes(platform.domain)
-    )
+    // const isValid = supportedPlatforms.some(platform => 
+    //   url.includes(platform.domain)
+    // )
+    const isValid = true
     urlValidationCache.set(url, isValid)
     return isValid
   } catch {
