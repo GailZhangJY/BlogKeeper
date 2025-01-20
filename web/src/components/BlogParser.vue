@@ -233,6 +233,7 @@ const supportedPlatforms: Platform[] = [
   { name: '腾讯云开发者社区', domain: 'https://cloud.tencent.com/developer' },
   //{ name: '阿里云开发者社区', domain: 'https://developer.aliyun.com' },
   //{ name: '华为云开发者社区', domain: 'https://bbs.huaweicloud.com/' },
+  { name: '硅谷王川', domain: 'https://chuan.us' },
 ]
 
 const selectedFormats = ref<string[]>(['html'])

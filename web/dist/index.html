@@ -2,29 +2,85 @@
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+    <link 
+      rel="icon" 
+      type="image/svg+xml" 
+      href="/logo.svg" 
+      sizes="32x32"
+      media="(prefers-color-scheme: light)"
+    />
+    <link 
+      rel="icon" 
+      type="image/svg+xml" 
+      href="/logo.svg" 
+      sizes="32x32"
+      media="(prefers-color-scheme: dark)"
+    />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>文捕 - 博客内容一键解析下载工具</title>
+    <title>BlogKeeper - 文捕 - 博客内容一键解析下载工具</title>
     
     <!-- SEO Meta Tags -->
-    <meta name="description" content="一键解析下载CSDN、博客园、微信公众号，知乎，掘金等平台的博客文章，支持导出HTML、PDF，markdown, mhtml等多种格式。让文章收藏整理更轻松。" />
-    <meta name="keywords" content="博客解析,文章下载,CSDN,博客园,微信公众号,HTML下载,PDF下载,文章收藏" />
+    <meta name="description" content="一键解析下载CSDN、cnblogs/博客园、微信公众号等平台的博客文章，支持导出HTML、PDF，markdown，mhtml等多种格式，让文章收藏整理更轻松。" />
+    <meta name="keywords" content="blog keeper, blog-keeper, 文捕，博客，文章，下载，解析，博客解析，文章下载，博客下载，文章解析，CSDN，cnblogs，博客园，微信公众号，HTML下载，PDF下载，Markdown下载" />
     <meta name="robots" content="index, follow" />
     
     <!-- Open Graph Meta Tags -->
-    <meta property="og:title" content="文捕 - 博客内容一键解析下载工具" />
-    <meta property="og:description" content="一键解析下载CSDN、博客园、微信公众号，知乎，掘金等平台的博客文章，支持导出HTML、PDF,markdown, mhtml等多种格式。" />
+    <meta property="og:title" content="BlogKeeper - 文捕 - 博客内容一键解析下载工具" />
+    <meta property="og:description" content="一键解析下载CSDN、cnblogs/博客园、微信公众号等平台的博客文章，支持导出HTML、PDF，markdown，mhtml等多种格式，让文章收藏整理更轻松。" />
     <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://blog-keeper.com/" />
+    <meta property="og:image" content="https://blog-keeper.com/logo.svg" />
+    <meta property="og:site_name" content="BlogKeeper - 文捕" />
+    
+    <!-- Twitter Card Tags -->
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="BlogKeeper - 文捕 - 博客内容一键解析下载工具" />
+    <meta name="twitter:description" content="一键解析下载CSDN、cnblogs/博客园、微信公众号等平台的博客文章，支持导出HTML、PDF，markdown，mhtml等多种格式，让文章收藏整理更轻松。" />
+    <meta name="twitter:image" content="https://blog-keeper.com/logo.svg" />
+    
+    <!-- 规范链接和语言 -->
+    <link rel="canonical" href="https://blog-keeper.com/" />
+    <link rel="alternate" hreflang="zh-CN" href="https://blog-keeper.com/" />
+    <link rel="alternate" hreflang="x-default" href="https://blog-keeper.com/" />
+    
+    <!-- 站点地图 -->
+    <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
     
     <!-- 移动端优化 -->
     <meta name="format-detection" content="telephone=no">
     <meta name="theme-color" content="#ffffff">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     
     <!-- 预连接常用域名，优化加载速度 -->
     <link rel="preconnect" href="https://blog.csdn.net">
     <link rel="preconnect" href="https://www.cnblogs.com">
+    <link rel="preconnect" href="https://www.ruanyifeng.com">
     <link rel="preconnect" href="https://www.zhihu.com">
-    <link rel="preconnect" href="https://juejin.cn">
+    <link rel="preconnect" href="https://mp.weixin.qq.com">
+    
+    <!-- 结构化数据 -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "BlogKeeper - 文捕 - 博客内容一键解析下载工具",
+      "description": "一键解析下载CSDN、博客园、微信公众号等平台的博客文章，支持导出HTML、PDF，markdown，mhtml等多种格式，让文章收藏整理更轻松。",
+      "applicationCategory": "工具",
+      "operatingSystem": "Web",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "CNY"
+      },
+      "author": {
+        "@type": "Person",
+        "name": "ZhangJY"
+      },
+      "inLanguage": "zh-CN",
+      "url": "https://blog-keeper.com/"
+    }
+    </script>
 
     <!-- Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-PLF5SWZVS9"></script>
@@ -38,8 +94,8 @@
     <meta name="sogou_site_verification" content="MyTePkviBO" />
     <meta name="yandex-verification" content="689c2b12487ee0cd" />
     <meta name="baidu-site-verification" content="codeva-s2e0gJumhx" />
-    <script type="module" crossorigin src="/assets/index-d2adf39b.js"></script>
-    <link rel="stylesheet" href="/assets/index-c20ad0fa.css">
+    <script type="module" crossorigin src="/assets/index-703dca46.js"></script>
+    <link rel="stylesheet" href="/assets/index-36e2c138.css">
   </head>
   <body>
     <div id="app"></div>

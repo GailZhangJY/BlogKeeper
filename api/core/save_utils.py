@@ -26,6 +26,23 @@ from bs4 import BeautifulSoup
 from datetime import datetime
 from .log_utils import logger
 
+# 构造请求头
+IMAGE_REQUEST_HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+    'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+    'Accept-Encoding': 'gzip, deflate, br',
+    'Connection': 'keep-alive',
+    'Sec-Ch-Ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+    'Sec-Ch-Ua-Mobile': '?0',
+    'Sec-Ch-Ua-Platform': '"Windows"',
+    'Sec-Fetch-Dest': 'image',
+    'Sec-Fetch-Mode': 'no-cors',
+    'Sec-Fetch-Site': 'cross-site',
+    'Pragma': 'no-cache',
+    'Cache-Control': 'no-cache',
+}
+
 def get_save_path(file_name, file_path):
     # 拼接文件路径
     filepath = os.path.join(file_path, file_name)
@@ -34,13 +51,15 @@ def get_save_path(file_name, file_path):
     return filepath
 
 
-def base_save_handle(title, content, css_styles, file_name, file_path, base_url=None, platform=None):
+def base_save_handle(title, content, css_styles, file_name, file_path, base_url=None, format=None):
     # 处理图片
     logger.info("base_save_handle 处理图片" + base_url)
     logger.info(f"content类型: {type(content)}")
     if base_url:
         logger.info("base_save_handle 处理图片00" + base_url)
-        content = process_images_in_content(content, base_url, file_path)
+        save_img = format == 'pdf'
+        logger.info("base_save_handle 处理图片00" + str(save_img))
+        content = process_images_in_content(content, base_url, file_path, save_img)
         
     # 如果content是BeautifulSoup对象，转换为字符串
     if isinstance(content, BeautifulSoup):
@@ -85,7 +104,7 @@ def save_as_html(title, content, css_styles, file_name, file_path, base_url=None
     """
     try:
         filepath = get_save_path(file_name, file_path)
-        content = base_save_handle(title, content, css_styles, file_name, file_path, base_url, platform)
+        content = base_save_handle(title, content, css_styles, file_name, file_path, base_url, 'html')
             
         # 创建HTML模板
         html_template = create_html_template(title, content, css_styles, base_url, platform)
@@ -116,7 +135,7 @@ def save_as_markdown(title, content, css_styles, file_name, file_path, base_url=
     """
     try:
         filepath = get_save_path(file_name, file_path)
-        content = base_save_handle(title, content, css_styles, file_name, file_path, base_url, platform)
+        content = base_save_handle(title, content, css_styles, file_name, file_path, base_url, 'markdown')
             
         # 将HTML转换为Markdown
         markdown_converter = html2text.HTML2Text()
@@ -175,7 +194,7 @@ def save_as_pdf(title, content, css_styles, file_name, file_path, base_url=None,
     """将博客内容保存为PDF格式"""
     try:
         # 1. 处理图片
-        content = base_save_handle(title, content, css_styles, file_name, file_path, base_url, platform)
+        content = base_save_handle(title, content, css_styles, file_name, file_path, base_url, 'pdf')
         
         # 2. 先保存为临时HTML文件
         temp_html = os.path.join(file_path, f"{os.path.splitext(file_name)[0]}_temp.html")
@@ -234,7 +253,7 @@ def save_as_mhtml(title, content, css_styles, file_name, file_path, base_url=Non
     try:
         # 编码HTML内容
         filepath = get_save_path(file_name, file_path)
-        content = base_save_handle(title, content, css_styles, file_name, file_path, base_url, platform)
+        content = base_save_handle(title, content, css_styles, file_name, file_path, base_url, 'mhtml')
         html_content = create_html_template(title, content, css_styles, base_url, platform)
 
         # 处理图片
@@ -301,7 +320,8 @@ def handle_mhtml_images(content, base_url):
                     src = urljoin(base_url, src)
                 
                 # 下载图片内容
-                response = requests.get(src)
+                session = requests.Session()
+                response = session.get(src, headers=IMAGE_REQUEST_HEADERS, timeout=10)
                 if response.status_code == 200:
                     # 获取图片类型
                     content_type = response.headers.get('content-type', 'image/jpeg')
@@ -335,9 +355,12 @@ def convert_webp_to_png(image_url, save_dir):
         
         # 下载图片
         logger.info("正在下载图片...")
-        response = requests.get(image_url)
+        session = requests.Session()
+        response = session.get(image_url, headers=IMAGE_REQUEST_HEADERS, timeout=10)
+        
         if response.status_code != 200:
             logger.error(f"下载图片失败: {image_url}, 状态码: {response.status_code}")
+            logger.error(f"响应头: {response.headers}")
             return image_url
             
         # 生成唯一的文件名
@@ -380,9 +403,11 @@ def convert_webp_to_png(image_url, save_dir):
         logger.error(traceback.format_exc())
         return image_url
 
-def process_single_image(img, base_url, images_dir):
+def process_single_image(img, base_url, images_dir, save_img):
     """处理单个图片"""
     start_time = time.time()
+    
+    logger.info(f"处理单个图片")      
     try:
         # 检查所有可能的图片源属性
         src_attrs = ['src', 'data-src', 'data-original-src', 'data-backgroud', 'data-original']
@@ -391,7 +416,8 @@ def process_single_image(img, base_url, images_dir):
             if attr in img.attrs and img[attr]:
                 src = img[attr]
                 break
-                
+
+        logger.info(f"process_single_image00 : {src}")       
         if not src:
             return False, None, None, 0
             
@@ -402,27 +428,28 @@ def process_single_image(img, base_url, images_dir):
         # 转换为绝对URL
         if not src.startswith(('http://', 'https://')):
             src = urljoin(base_url, src)
-            
-        # 检查是否为webp格式
-        if '.webp' in src.lower() or 'format/webp' in src.lower():
-            # 如果是简书的图片URL，尝试去掉format/webp参数
-            if 'jianshu.io' in src and 'format/webp' in src:
-                new_src = re.sub(r'\|imageView2/2/w/\d+/format/webp', '', src)
-                new_src = re.sub(r'\?.*format/webp', '', new_src)
-                return True, src, new_src, time.time() - start_time
-                
+
+        logger.info(f"process_single_image11 : {src}")
+
+        if 'sspai.com' in src:
+            if not src.endswith('/format/webp'):
+                src = src + '/format/webp'
+                img['src'] = src
+
+        logger.info(f"process_single_image22 : {src}")
+        if save_img:
             # 转换并保存图片
             new_src = convert_webp_to_png(src, images_dir)
-            if new_src != src:
-                return True, src, new_src, time.time() - start_time
-                
+            return True, src, new_src, time.time() - start_time
+
+        logger.info(f"process_single_image33 : {src}")            
         return True, src, src, time.time() - start_time
         
     except Exception as e:
         logger.error(f"处理图片失败: {str(e)}")
         return False, None, None, time.time() - start_time
 
-def process_images_in_content(content, base_url, save_dir):
+def process_images_in_content(content, base_url, save_dir, save_img):
     """处理文章内容中的图片，使用并行处理提高性能"""
     start_time = time.time()
     logger.info("=== 开始并行处理文章中的图片 ===")
@@ -442,15 +469,20 @@ def process_images_in_content(content, base_url, save_dir):
     processing_times = []
     
     def process_image_wrapper(img):
-        success, old_src, new_src, process_time = process_single_image(img, base_url, images_dir)
-        logger.info(f"图片处理结果: {success}, 原始URL: {old_src}, 新URL: {new_src}, 处理时间: {process_time:.2f}秒")
-        processing_times.append(process_time)
-        if success and new_src:
-            img['src'] = new_src
-            # 移除其他可能的图片源属性
-            for attr in ['data-src', 'data-original']:
-                if attr in img.attrs:
-                    del img[attr]
+        try:                
+            success, old_src, new_src, process_time = process_single_image(img, base_url, images_dir, save_img)   
+            logger.info(f"图片处理结果: {success}, 原始URL: {old_src}, 新URL: {new_src}, 处理时间: {process_time:.2f}秒")
+            processing_times.append(process_time)
+            if success and new_src:
+                img['src'] = new_src
+                # 移除其他可能的图片源属性
+                for attr in ['data-src', 'data-original-src', 'data-backgroud', 'data-original']:
+                    if attr in img.attrs:
+                        del img[attr]
+
+        except Exception as e:
+            logger.error(f"处理图片时出错: {str(e)}")
+            logger.error(f"问题图片标签: {img}")
     
     # 使用线程池并行处理图片
     with ThreadPoolExecutor(max_workers=min(32, len(images))) as executor:

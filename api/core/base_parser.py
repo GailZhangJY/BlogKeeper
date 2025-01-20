@@ -94,15 +94,55 @@ class BaseBlogParser(ABC):
         """提取页面元素
         Args:
             soup: BeautifulSoup对象
-            selectors: 选择器列表，每个选择器是(tag, attrs)元组
+            selectors: 选择器列表，可以是以下三种格式之一：
+                    1. (tag, attrs)元组 - 传统的标签属性选择方式
+                    2. CSS选择器字符串 - 如 ".class1 > .class2"
+                    3. XPath选择器字符串 - 以 "xpath:" 开头，如 "xpath://div[@class='class1']"
             default: 默认返回值
             get_text: 是否只返回文本内容
         Returns:
             str or element: 提取的内容
         """
+        from lxml import etree
         
         for selector in selectors:
             try:
+                # 处理XPath选择器字符串
+                if isinstance(selector, str) and selector.startswith('xpath:'):
+                    logger.debug(f"尝试XPath选择器: {selector}")
+                    xpath_expr = selector[6:]  # 去掉 "xpath:" 前缀
+                    
+                    # 将BeautifulSoup对象转换为lxml的etree对象
+                    if isinstance(soup, BeautifulSoup):
+                        html_str = str(soup)
+                    else:
+                        html_str = soup
+                    
+                    # 使用lxml解析HTML
+                    parser = etree.HTMLParser()
+                    tree = etree.fromstring(html_str, parser)
+                    
+                    # 执行XPath查询
+                    elements = tree.xpath(xpath_expr)
+                    if elements:
+                        element = elements[0]
+                        if get_text:
+                            return element.text.strip() if element.text else ''
+                        return element
+                    continue
+                
+                # 处理CSS选择器字符串
+                if isinstance(selector, str):
+                    logger.debug(f"尝试CSS选择器: {selector}")
+                    elements = soup.select(selector)
+                    if elements:
+                        element = elements[0]
+                        if get_text:
+                            return element.get_text(strip=True)
+                        return element
+                    continue
+                
+                # 处理传统的(tag, attrs)选择器
                 tag, attrs = selector
                 logger.debug(f"尝试选择器: tag={tag}, attrs={attrs}")
                 
@@ -121,9 +161,9 @@ class BaseBlogParser(ABC):
                 else:
                     element = soup.find(tag, attrs)
 
-                # 2. 如果没找到且存在class_属性，尝试部分匹配
-                if not element and 'class_' in attrs:
-                    class_value = attrs['class_']
+                # 2. 如果没找到且存在class属性，尝试部分匹配
+                if not element and 'class' in attrs:
+                    class_value = attrs['class']
                     if isinstance(class_value, str):
                         # 支持正则表达式class匹配
                         if any(c in class_value for c in '*?^$[](){}|'):
@@ -347,12 +387,17 @@ class BaseBlogParser(ABC):
         
         def fetch_css(url):
             try:
-                response = requests.get(url, timeout=5)  # 添加超时
+                response = requests.get(url, headers=self._headers, timeout=10)
                 if response.status_code == 200:
-                    return response.text
-            except:
-                pass
-            return None
+                    css_content = response.text
+                    # 去掉最外层的 style 标签
+                    css_content = re.sub(r'^\s*<style[^>]*>', '', css_content)
+                    css_content = re.sub(r'</style>\s*$', '', css_content)
+                    return css_content.strip()
+                return ''
+            except Exception as e:
+                logger.error(f"获取CSS样式失败: {str(e)}")
+                return ''
         
         # 并行获取CSS
         if css_urls:

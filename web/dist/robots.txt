@@ -1,6 +1,22 @@
+# 文捕 - 博客内容一键解析下载工具
+# https://blog-keeper.com/
+
+# 允许所有搜索引擎爬虫访问
 User-agent: *
+# 允许访问所有前端页面
 Allow: /
+# 禁止访问 API 接口
 Disallow: /api/
+# 禁止访问开发相关文件
+Disallow: /*.json$
+Disallow: /*.md$
+Disallow: /*.txt$
+Disallow: /*.yml$
+Disallow: /*.yaml$
+Disallow: /*.config.*$
 
 # 站点地图
-Sitemap: https://www.blog-keeper.com/sitemap.xml
+Sitemap: https://blog-keeper.com/sitemap.xml
+
+# 抓取频率限制
+Crawl-delay: 10

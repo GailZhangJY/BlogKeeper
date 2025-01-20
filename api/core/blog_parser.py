@@ -16,6 +16,10 @@ from platform_api.ruanyifeng import RuanYiFengParser
 from platform_api.tencentcloud import TencentCloudParser
 from platform_api.huaweicloud import HuaWeiCloudParser
 from platform_api.aliyundeveloper import AliyunDeveloperParser
+from platform_api.toutiao import ToutiaoParser
+from platform_api.wangchuan import WangchuanParser
+from platform_api.sspai import SSPaiParser
+
 from errors import PlatformError, ParseError
 from .log_utils import logger
 
@@ -35,6 +39,9 @@ class BlogParser:
             'cloud.tencent.com': TencentCloudParser(),
             #'bbs.huaweicloud.com': HuaWeiCloudParser(),
             #'developer.aliyun.com': AliyunDeveloperParser(),
+            #'toutiao.com': ToutiaoParser(),
+            'chuan.us': WangchuanParser(),
+            #'sspai.com': SSPaiParser(),
         }
 
     def get_parser(self, url: str):
