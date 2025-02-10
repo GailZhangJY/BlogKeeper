@@ -10,7 +10,6 @@ Disallow: /api/
 # 禁止访问开发相关文件
 Disallow: /*.json$
 Disallow: /*.md$
-Disallow: /*.txt$
 Disallow: /*.yml$
 Disallow: /*.yaml$
 Disallow: /*.config.*$
