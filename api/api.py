@@ -16,7 +16,7 @@ from fastapi.responses import FileResponse as FastAPIFileResponse, StreamingResp
 from fastapi.staticfiles import StaticFiles
 from core.log_utils import logger
 from datetime import datetime
-from urllib.parse import quote
+from urllib.parse import quote, unquote
 import os
 import shutil
 from datetime import datetime
@@ -24,6 +24,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 import time
 from errors import BlogKeeperError, ServerError, ParseError
 from datetime import datetime, timezone, timedelta
+import hashlib
 
 # 加载环境变量
 load_dotenv()
@@ -125,8 +126,9 @@ async def batch_download(request: Request, body: BatchDownloadRequest):
 
         with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
             for file_info in body.files:
-                # 获取完整的文件路径
-                file_path = TEMP_PATH + file_info.url[len(DOWNLOAD_DIR):]
+                # 获取完整的文件路径（客户端传来的URL已编码，这里先解码再还原到本地路径）
+                relative_url_path = unquote(file_info.url[len(DOWNLOAD_DIR):])
+                file_path = TEMP_PATH + relative_url_path
                 logger.info(f"处理文件: URL={file_info.url}, 路径={file_path}, 文件名={file_info.filename}")
 
                 # 获取完整的文件路径
@@ -175,7 +177,9 @@ async def parse_blog_api(request: Request, parse_request: ParseRequest):
     start_time = time.time()
     try:
         # 创建输出目录
-        output_dir = TEMP_DIR / str(hash(str(parse_request.url)))
+        # 使用稳定的 SHA-256 对 URL 做摘要，避免内置 hash() 的随机化导致目录不稳定
+        stable_id = hashlib.sha256(str(parse_request.url).encode('utf-8')).hexdigest()[:16]
+        output_dir = TEMP_DIR / stable_id
         output_dir.mkdir(exist_ok=True)
 
         # 格式映射
@@ -219,11 +223,17 @@ async def parse_blog_api(request: Request, parse_request: ParseRequest):
         # 只返回请求的格式
         for file_info in file_list:
             if file_info['format'] in formats:
-                # 修改下载URL的格式，确保使用正斜杠
-                file_path = file_info["download_url"]
-                file_path = file_path.replace('\\', '/')
-                file_path = file_path.replace(TEMP_PATH, DOWNLOAD_DIR)
-                file_info['download_url'] = file_path
+                # 修改下载URL的格式，确保使用正斜杠并进行URL编码，避免 % 等特殊字符导致的服务端403
+                file_path = file_info["download_url"].replace('\\', '/')
+                # 提取 temp/ 之后的相对路径并进行编码
+                if file_path.startswith(TEMP_PATH + '/'):
+                    relative_path = file_path[len(TEMP_PATH) + 1:]
+                else:
+                    # 兼容意外情况，尝试按第一个出现的 temp/ 分割
+                    parts = file_path.split(TEMP_PATH + '/', 1)
+                    relative_path = parts[1] if len(parts) == 2 else file_path
+                encoded_relative = quote(relative_path, safe='/')
+                file_info['download_url'] = f"{DOWNLOAD_DIR}/{encoded_relative}"
 
                 if not file_content:
                     file_info['file_content'] = ""
