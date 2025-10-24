@@ -41,7 +41,14 @@ cd api
 pip install -r requirements.txt
 
 # 运行
-python app.py
+python api.py
+```
+快速测试
+```bash
+python main.py [-html] [-pdf] [-md] [-mhtml] [-o] url
+
+# 示例
+python main.py -html https://mp.weixin.qq.com/s/bdqcwi0CgkoIvUiKsGBFog
 ```
 
 启动前端
@@ -54,5 +61,7 @@ npm install
 
 # 运行
 npm run dev
-```
 
+# 打包
+npm run build
+```

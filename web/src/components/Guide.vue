@@ -10,6 +10,9 @@ import MarkdownRenderer from './MarkdownRenderer.vue'
 const guideContent = `
 # 文捕使用说明
 
+## 开源-2025.10.24
+https://github.com/GailZhangJY/BlogKeeper
+
 一款在线博客内容解析下载工具，支持多个平台，多种格式，尽量保留文章原始排版
 
 ## 多平台支持🌐

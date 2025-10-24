@@ -17,6 +17,9 @@ const changelogContent = `# 文捕更新日志
 
 若是还没有支持的平台，比如掘金，主要是本人太菜，还不会，没有逆向基础
 
+## 开源-2025.10.24
+https://github.com/GailZhangJY/BlogKeeper
+
 ## 未来计划
 
 ### 计划支持的平台
