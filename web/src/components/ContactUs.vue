@@ -4,7 +4,7 @@
     <h2 class="text-3xl font-bold text-center text-gray-900 mb-12">联系我们</h2>
     
     <div class="flex justify-center">
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-4xl">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8 max-w-4xl">
         <!-- Twitter -->
         <div class="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-6 flex flex-col items-center justify-between h-50">
           <div class="flex items-center justify-center space-x-3">
@@ -74,6 +74,33 @@
             <p class="text-sm text-gray-600 mt-2">点击二维码放大查看</p>
           </div>
         </div>
+
+        <!-- qq -->
+        <div class="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-6 flex flex-col items-center justify-between h-50">
+          <div class="flex items-center justify-center space-x-3">
+            <img 
+              src="/qq.svg" 
+              alt="QQ交流群" 
+              class="h-7 w-7" 
+              width="28" 
+              height="28" 
+              loading="lazy"
+            />
+            <h3 class="text-lg font-medium text-gray-900">QQ交流群</h3>
+          </div>
+          <div class="text-center">
+            <img 
+              src="/qq.jpg" 
+              alt="QQ交流群" 
+              class="w-20 h-20 object-cover rounded cursor-pointer transition-transform hover:scale-105 mx-auto" 
+              width="80" 
+              height="80" 
+              loading="lazy"
+              @click="showQQCode = true"
+            />
+            <p class="text-sm text-gray-600 mt-2">点击二维码放大查看</p>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -95,6 +122,25 @@
         <p class="text-center text-gray-900 font-medium mt-4">扫码关注公众号</p>
       </div>
     </div>
+
+    <!-- QR Code Modal -->
+    <div 
+      v-if="showQQCode" 
+      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+      @click="showQQCode = false"
+    >
+      <div class="bg-white p-6 rounded-lg max-w-sm w-full mx-4">
+        <img 
+          src="/qq.jpg" 
+          alt="文捕QQ交流" 
+          class="w-full h-auto rounded" 
+          width="400" 
+          height="400" 
+          loading="lazy"
+        />
+        <p class="text-center text-gray-900 font-medium mt-4">扫码加入群聊</p>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -102,4 +148,5 @@
 import { ref } from 'vue'
 
 const showQRCode = ref(false)
+const showQQCode = ref(false)
 </script>
